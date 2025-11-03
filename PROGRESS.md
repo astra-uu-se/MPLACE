@@ -68,4 +68,4 @@ This progress tracking file should be updated after each significant change or b
 
 ---
 
-*Last updated: October 17, 2025 (added Plater CSV and Wellmap TOML export support tasks)*
+*Last updated: October 30, 2025 (completed "Create Recent Files Menu" task)*
