@@ -11,12 +11,6 @@ MPLACE is a desktop app with a graphical interface for generating and visualizin
   - run a ready-made model (PLAID),
   - visualize results without coding.
 
-<!-- Main window -->
-<p align="center">
-  <img src="images/main.png" alt="MPLACE main window with DZN/CSV workflow" width="400">
-</p>
-<p align="center"><em>Main window: generate/load DZN, run model, load/visualize CSV.</em></p>
-
 ## Quick Start (about 5–10 minutes)
 
 Follow these steps in order:
