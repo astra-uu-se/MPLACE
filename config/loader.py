@@ -98,7 +98,14 @@ def load_config() -> AppConfig:
             "  • Check that all .mzn and .mpc files exist\n"
             "  • Verify file permissions are readable"
         )
-        raise ValueError(error_msg)
+        if len(validation_errors) == 1 and validation_errors[0].startswith("COMPD model file not found at:"):
+            app_config = AppConfig(minizinc_path = minizinc_path,
+                                   plaid_path = plaid_path,
+                                   compd_path = '',
+                                   plaid_mpc_path = plaid_mpc_path,
+                                   compd_mpc_path = compd_mpc_path)
+        else:
+            raise ValueError(error_msg)
     
     logger.info("Configuration loaded successfully from paths.ini")
     return app_config

@@ -557,6 +557,7 @@ try:
     app_config: AppConfig = load_config()
     print("Configuration loaded successfully")
     logger.info("Configuration loaded from paths.ini")
+        
 except FileNotFoundError as e:
     logger.critical(f"Configuration error: {e}")
     tk.messagebox.showerror("Configuration Error", str(e))
@@ -615,6 +616,10 @@ radio_compd.grid(row=0, column=1, columnspan=1, sticky="")
 button_run_minizinc.grid(row=1, column=0, columnspan=1, sticky="ew")
 button_load_csv.grid(row=1, column=1, columnspan=1, sticky="ew")
 label_csv_loaded.grid(row=2, column=0, columnspan=2, sticky="w")
+
+if app_config.compd_path == '':
+    radio_compd.config(state=tk.DISABLED)
+
 
 # Frame 3: Visualization
 frame_matplotlib: ttk.LabelFrame = ttk.LabelFrame(root, text=Messages.FRAME_TITLE_VIZ)
