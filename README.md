@@ -3,13 +3,22 @@
 
 **MicroPlate Layout Arrangement with Constraint Engines**
 
-MPLACE is a desktop app with a graphical interface for generating and visualizing microplate layouts. It runs MiniZinc models (e.g., PLAID) behind the scenes so you don't need to write code. Typical use: define compounds/controls, produce plate layouts, and save figures for reports.
+MPLACE is a desktop app with a graphical interface for generating and visualizing microplate layouts. It runs MiniZinc models (e.g., PLAID and COMPD) behind the scenes, so you don't need to write code. Typical use: define compounds/controls, produce plate layouts, and save figures for reports.
 
 **Who is this for?**
 - Biomedical researchers and lab staff who want to:
   - quickly generate microplate layouts from compounds/controls,
-  - run a ready-made model (PLAID),
+  - run a ready-made model (PLAID or COMPD),
   - visualize results without coding.
+
+
+<!-- Main window -->
+<p align="center">
+  <img src="images/main.png" alt="MPLACE main window with DZN/CSV workflow" width="400">
+</p>
+<p align="center"><em>Main window: generate/load DZN, run model, load/visualize CSV.</em></p>
+
+
 
 ## Quick Start (about 5–10 minutes)
 
@@ -35,9 +44,9 @@ Follow these steps in order:
 - Open `config/paths.ini` in a text editor and verify/edit:
   - `minizinc_path = "C:/Program Files/MiniZinc/minizinc.exe"` (Windows example)
   - `minizinc_path = "/Applications/MiniZincIDE.app/Contents/Resources/minizinc"` (macOS example)
-  - `plaid_path = "mzn/plate-design.mzn"` (default included model)
+  - `plaid_path = "mzn/plate-design.mzn"` (PLAID main model file, included)
   - `plaid_mpc_path = "mzn/plaid_default.mpc"`
-  - `compd_path = "mzn/plate-optimizer.mzn"` (alternative model, currently not included)
+  - `compd_path = "mzn/plate-optimizer.mzn"` (COMPD main model file, included)
   - `compd_mpc_path = "mzn/compd_default.mpc"`
 
 **Step 6: Start the app**
@@ -72,7 +81,7 @@ If the window opens, you're ready to go.
 Open `config/paths.ini` and check or edit the following lines:
 - `minizinc_path`: full path to your MiniZinc executable
 - `plaid_path`: the PLAID model file (included under mzn/, version of 30 September 2025)
-- `compd_path`: another model (currently not included)
+- `compd_path`: the COMPD model file (included under mzn/, version 1.23)
 - `plaid_mpc_path`, `compd_mpc_path`: solver configuration files (included under mzn/)
 
 **Example (Windows):**
@@ -113,7 +122,7 @@ compd_mpc_path = "mzn/compd_default.mpc"
 
 **2) Run the model to produce a layout (*.csv)**
 - Click "Run a model".
-- Choose PLAID (default) or Other.
+- Choose PLAID or COMPD.
 - After the model finishes, you'll be asked which **CSV format** to save:
   - **CSV (PharmBio)** — the default MPLACE format used for visualization and post-processing
   - **CSV (PLATER)** — a plate-shaped format compatible with the R `plater` package (one file per plate). See "Plater format" below.
@@ -207,7 +216,7 @@ When generating a *.dzn, compounds and controls are entered as Python-like dicti
 - Edit `mzn/plaid_default.mpc` or `mzn/compd_default.mpc` to change solver settings (e.g., threads).
 
 **Timeouts**
-- For non-PLAID models, you may need to increase the timeout from 180s to 300s or higher if results are unsatisfactory.
+- For COMPD, you may need to increase the timeout from 180s to 300s (or higher) or higher if results are unsatisfactory.
 
 **Models**
 - The repo includes model files under `mzn/`. You can point `paths.ini` to other model files if needed.
