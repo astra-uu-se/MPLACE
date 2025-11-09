@@ -605,8 +605,8 @@ button_load_csv: ttk.Button = ttk.Button(
 label_csv_loaded: tk.Label = tk.Label(frame_csv, text=Messages.NO_CSV_LOADED)
 radio_plaid: ttk.Radiobutton = ttk.Radiobutton(frame_csv, text=Messages.MODEL_PLAID,
                                                value=UI.SELECT_PLAID, variable=use_compd_flag)
-radio_compd: ttk.Radiobutton = ttk.Radiobutton(frame_csv, text=Messages.MODEL_OTHER,
-                                               value=UI.SELECT_OTHER, variable=use_compd_flag)
+radio_compd: ttk.Radiobutton = ttk.Radiobutton(frame_csv, text=Messages.MODEL_COMPD,
+                                               value=UI.SELECT_COMPD, variable=use_compd_flag)
 
 frame_csv.columnconfigure(0, weight=UI.GRID_WEIGHT)
 frame_csv.columnconfigure(1, weight=UI.GRID_WEIGHT)
