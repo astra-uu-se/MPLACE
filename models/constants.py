@@ -64,7 +64,7 @@ class UI:
     
     # Model selection
     SELECT_PLAID = False
-    SELECT_OTHER = True
+    SELECT_COMPD = True
 
 
 class Alphabet:
