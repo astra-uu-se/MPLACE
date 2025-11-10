@@ -108,6 +108,7 @@ class PathsIni:
     COMPD_PREFIX = 'compd_path'
     PLAID_MPC_PREFIX = 'plaid_mpc_path'
     COMPD_MPC_PREFIX = 'compd_mpc_path'
+    FILE_ERROR_PLACEHOLDER = 'invalid data'
 
 
 class Messages:
@@ -127,7 +128,7 @@ class Messages:
     BUTTON_LOAD_CSV = 'Load *.csv file'
     BUTTON_VISUALIZE = 'Visualize *.csv'
     BUTTON_RESET = 'Reset all'
-    BUTTON_CLOSE = 'close window'
+    BUTTON_SAVE_LAYOUTS = 'Save the layout(-s)'
     
     # Label texts
     LABEL_ROWS = 'nb rows:'

@@ -35,7 +35,7 @@ from tkinter import ttk, VERTICAL, RIGHT, Y, LEFT, BOTH
 import ast
 from typing import List, Dict, Sequence, Union
 
-from core.layout_utils import transform_coordinate, transform_concentrations_to_alphas, to_number_if_possible, find_all_plates_concentrations
+from core.layout_utils import transform_coordinate, transform_index, transform_concentrations_to_alphas, to_number_if_possible, find_all_plates_concentrations
 from core.io_utils import read_csv_file
 from models.constants import Visualization, Performance, PlateDefaults, UI, WindowConfig, Messages
 
@@ -96,7 +96,7 @@ def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: Sequen
         draw_plate(tab_control, figure_name_template, layout,
                    layouts_dict[layout], material_colors, alpha_mappings, 
                    num_rows, num_cols, control_names)
-    tab_control.grid(row=0, column=0, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
+    tab_control.grid(row=1, column=0, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
 
     # Create scrollable material scale panel
     tab_control2 = ttk.Frame(parent, width=Visualization.MATERIAL_PANEL_WIDTH)
@@ -121,7 +121,7 @@ def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: Sequen
                             material_color, concentration_material, alpha_mappings[material])
 
     canvas_right.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    tab_control2.grid(row=0, column=1, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
+    tab_control2.grid(row=1, column=1, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
 
 
 def update_scroll_region(event: tk.Event, canvas: tk.Canvas) -> None:
@@ -163,10 +163,19 @@ def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, lay
             is_switched = False
 
         ax.grid(True)
-        ax.set_xticks(np.arange(0, num_rows + 1, 1))
-        ax.set_yticks(np.arange(0, num_cols + 1, 1))
+        ax.set_xticks(np.arange(0, num_rows + 1, 1),labels=['' for _ in range(num_rows + 1)])
+        ax.set_yticks(np.arange(0, num_cols + 1, 1),labels=['' for _ in range(num_cols + 1)])
         ax.set_aspect('equal')
-
+        
+        if is_switched:
+            ax.set_xticks(np.arange(0.5, num_rows, 1),labels=[str(i + 1) for i in range(num_rows)],minor=True)
+            ax.set_yticks(np.arange(0.5, num_cols, 1),labels=[transform_index(i) for i in range(num_cols)],minor=True)
+        else:
+            ax.set_xticks(np.arange(0.5, num_rows, 1),labels=[transform_index(i) for i in range(num_rows)],minor=True)
+            ax.set_yticks(np.arange(0.5, num_cols, 1),labels=[str(i + 1) for i in range(num_cols)],minor=True)
+        
+        ax.tick_params(axis='both', which='minor', length=0)  # Hide minor tick marks
+        
         # Group wells by material
         materials: Dict[str, List[List[str]]] = {}
         for line in layout_array:
@@ -210,6 +219,8 @@ def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, lay
 
         ax.set_xlim(0, num_rows)
         ax.set_ylim(0, num_cols)
+        
+        ax.invert_yaxis()
 
         # Save figure with user-visible path confirmation
         png_path = figure_name_template + layout + '.png'
@@ -324,9 +335,9 @@ def visualize(file_path: str, figure_name_template: str, rows: str, cols: str,
     window.protocol('WM_DELETE_WINDOW', cleanup_and_close)  # Handle window X button
 
     # Add close button
-    quit_button: ttk.Button = ttk.Button(window, text=Messages.BUTTON_CLOSE)
-    quit_button.grid(row=0, column=0, columnspan=2)
-    quit_button.configure(command=cleanup_and_close)
+    #save_button: ttk.Button = ttk.Button(window, text=Messages.BUTTON_SAVE_LAYOUTS)
+    #save_button.grid(row=0, column=0, columnspan=2)
+    #save_button.configure(command=cleanup_and_close)
 
     try:
         draw_plates(window, figure_name_template, read_csv_file(file_path),

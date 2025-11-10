@@ -53,4 +53,4 @@ def ask_layout_export_format(parent) -> str:
     tk.Button(dialog, text="OK", command=ok).pack(pady=10)
     dialog.wait_window()
     
-    return result.lower().strip()
+    return result

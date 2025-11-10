@@ -36,7 +36,7 @@ from core.dzn_parser import scan_dzn
 from core.io_utils import path_show, extract_csv_text, convert_pharmbio_to_plater, write_csv_file
 from core.minizinc_runner import run_model
 from config.loader import load_config
-from models.constants import PlateDefaults, UI, Messages, WindowConfig, System, FileTypes
+from models.constants import PlateDefaults, UI, Messages, WindowConfig, System, FileTypes, PathsIni
 from models.dto import AppConfig, DznGenerationResult, MiniZincRunRequest, MiniZincRunResult, CSVConversionRequest
 from ui.layout_format_dialog import ask_layout_export_format
 from ui.ui_validators import numeric_entry_callback
@@ -49,6 +49,8 @@ from ui import window_visuals as wv
 # ------------------------------
 
 # Configure logging for main application
+startup_warnings = []
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -62,10 +64,14 @@ logger = logging.getLogger(__name__)
 # Log application startup
 logger.info("MPLACE application starting up")
 
-
-# Configuration required for Windows machines
-if sys.platform.startswith(System.WINDOWS_PLATFORM_PREFIX):
+# Configuration depending on OS
+if sys.platform.startswith(System.WINDOWS_PLATFORM_PREFIX): # Required for Windows machines
     os.system(System.WINDOWS_CODEPAGE_UTF8)  # Change code page to UTF-8
+
+python_version = sys.version_info
+if sys.platform == 'darwin' and (python_version.major < 3 or python_version.minor < 12):
+    startup_warnings.append(f"Python {python_version.major}.{python_version.minor} is used. MPLACE can work slowly on Python older than 3.12 on MacOS. Installing Python 3.12+ is recommended.")
+
 
 # Recent files menu configuration
 MAX_RECENT = 7
@@ -79,7 +85,7 @@ recent_csv = []
 # ------------------------------
 
 def update_csv_path(path: str) -> None:
-    """Update CSV file path and display it in the UI.
+    """Update CSV file path and display it in the UI. Enables the visualize button
 
     Args:
         path: Path to CSV file
@@ -87,6 +93,7 @@ def update_csv_path(path: str) -> None:
     path_show(path, label_csv_loaded)
     csv_file_path.set(path)
     logger.info(f"CSV file path updated: {path}")
+    button_visualize.config(state=tk.NORMAL)
 
 
 def reset_all() -> None:
@@ -96,11 +103,27 @@ def reset_all() -> None:
     num_rows.set(PlateDefaults.ROWS)
     num_cols.set(PlateDefaults.COLS)
     control_names.set(PlateDefaults.CONTROL_NAMES)
-    use_compd_flag.set(UI.SELECT_PLAID)
+    
+    if str(radio_plaid.cget('state')) == tk.NORMAL:
+        use_compd_flag.set(UI.SELECT_PLAID)
+    elif str(radio_plaid.cget('state')) == tk.DISABLED and str(radio_compd.cget('state')) == tk.NORMAL:
+        use_compd_flag.set(UI.SELECT_COMPD)
+    else:
+        use_compd_flag.set(UI.SELECT_PLAID)
+    
     label_dzn_loaded.config(text=Messages.NO_DZN_LOADED)
     label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
     button_run_minizinc.config(state=tk.DISABLED)
+    button_visualize.config(state=tk.DISABLED)
     logger.info("Application state reset to defaults")
+
+
+def enable_mzn_button() -> None:
+    if app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        return
+    if app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        return
+    button_run_minizinc.config(state=tk.NORMAL)
 
 
 def on_dzn_generated(result: DznGenerationResult) -> None:
@@ -118,7 +141,7 @@ def on_dzn_generated(result: DznGenerationResult) -> None:
     # Update UI elements
     path_show(result.file_path, label_dzn_loaded)
     add_to_recent(result.file_path, recent_dzn, True)
-    button_run_minizinc.config(state=tk.NORMAL)
+    enable_mzn_button()
 
     print(
         f"DZN integrated: {result.rows}x{result.cols} plate, controls: {result.control_names}")
@@ -160,7 +183,7 @@ def load_dzn() -> None:
             print(f"Loaded DZN: {rows}x{cols} plate, controls: {controls_names_text}")
             logger.info(f"DZN file loaded successfully: {path}")
 
-            button_run_minizinc.config(state=tk.NORMAL)
+            enable_mzn_button()
             add_to_recent(path, recent_dzn, True)
         except (FileNotFoundError, ValueError) as e:
             logger.error(f"DZN loading failed: {path}, error: {e}")
@@ -238,6 +261,8 @@ def run_minizinc() -> None:
             logger.info("User cancelled export format selection - operation aborted")
             label_csv_loaded.config(text=original_label_text)
             return
+        else:
+            file_format.lower().strip()
 
         # Normalize format string to avoid case/value mismatches
         format_normalized = (file_format or '').lower().strip()
@@ -384,7 +409,7 @@ def visualize() -> None:
     if csv_file_path.get() != '':
         try:
             if use_compd_flag.get():
-                model_name = Messages.MODEL_OTHER
+                model_name = Messages.MODEL_COMPD
             else:
                 model_name = Messages.MODEL_PLAID
             figure_name_template = csv_file_path.get()[:-4] + '_' + model_name + '_'
@@ -557,7 +582,18 @@ try:
     app_config: AppConfig = load_config()
     print("Configuration loaded successfully")
     logger.info("Configuration loaded from paths.ini")
-        
+    
+    if app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        startup_warnings.append(f"MiniZinc is not found - can not use PLAID or COMPD.")
+    if app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        startup_warnings.append(f"PLAID model file is not loaded: can not use PLAID model.")
+    if app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        startup_warnings.append(f"COMPD model file is not loaded: can not use COMPD model.")
+    if app_config.plaid_mpc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        startup_warnings.append(f"Solver configuration for PLAID is not loaded. Default configuration (Gecode, 1 thread) will be used.")
+    if app_config.compd_mpc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+        startup_warnings.append(f"Solver configuration for COMPD is not loaded. Default configuration (Gecode, 1 thread) will be used.")
+
 except FileNotFoundError as e:
     logger.critical(f"Configuration error: {e}")
     tk.messagebox.showerror("Configuration Error", str(e))
@@ -617,9 +653,15 @@ button_run_minizinc.grid(row=1, column=0, columnspan=1, sticky="ew")
 button_load_csv.grid(row=1, column=1, columnspan=1, sticky="ew")
 label_csv_loaded.grid(row=2, column=0, columnspan=2, sticky="w")
 
-if app_config.compd_path == '':
+if app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+    radio_plaid.config(state=tk.DISABLED)
     radio_compd.config(state=tk.DISABLED)
-
+if app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+    radio_plaid.config(state=tk.DISABLED)
+if app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+    radio_compd.config(state=tk.DISABLED)
+if app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and not app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+    use_compd_flag.set(UI.SELECT_COMPD)
 
 # Frame 3: Visualization
 frame_matplotlib: ttk.LabelFrame = ttk.LabelFrame(root, text=Messages.FRAME_TITLE_VIZ)
@@ -632,7 +674,7 @@ label_cols: tk.Label = tk.Label(frame_matplotlib, text=Messages.LABEL_COLS)
 entry_cols: ttk.Entry = ttk.Entry(frame_matplotlib, textvariable=num_cols, width=UI.ENTRY_WIDTH_NUMERIC,
                                   validate='all', validatecommand=(vcmd, '%P'))
 button_visualize: ttk.Button = ttk.Button(
-    frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD, state=tk.NORMAL, text=Messages.BUTTON_VISUALIZE)
+    frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD, state=tk.DISABLED, text=Messages.BUTTON_VISUALIZE)
 button_reset_all: ttk.Button = ttk.Button(
     frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD, text=Messages.BUTTON_RESET)
 
@@ -672,6 +714,11 @@ refresh_recent_csv_menu()
 
 connect_generate_dzn()
 reset_all()
+
+if len(startup_warnings) == 1:
+    tk.messagebox.showwarning("Warning", startup_warnings[0])
+elif len(startup_warnings) > 1:
+    tk.messagebox.showwarning("Warnings", "\n\n".join(startup_warnings))
 
 logger.info("MPLACE GUI initialized, entering main loop")
 root.mainloop()

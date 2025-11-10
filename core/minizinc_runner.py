@@ -28,6 +28,8 @@ import subprocess
 
 from typing import List, Dict, Tuple, Union, Sequence
 
+from models.constants import PathsIni
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +49,16 @@ def run_model(minizinc_path: str, solver_config: str, model_file: str, data_file
     Raises:
         RuntimeError: If MiniZinc command execution fails
     """
+    if solver_config == PathsIni.FILE_ERROR_PLACEHOLDER:
+        solver_config = ' --solver gecode'
+        logger.info('Using Gecode, 1 thread')
+    else:
+        solver_config = ' --param-file-no-push ' + solver_config
+    
     if sys.platform.startswith('win'):
         cmd = [minizinc_path, solver_config, model_file, data_file]
     else:
-        cmd = [minizinc_path + ' --param-file-no-push ' +
-               solver_config + ' ' + model_file + ' ' + data_file]
+        cmd = [minizinc_path + solver_config + ' ' + model_file + ' ' + data_file]
     
     print('command:', cmd)
     logger.info(f"Executing MiniZinc: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
