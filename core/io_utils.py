@@ -40,7 +40,16 @@ logger = logging.getLogger(__name__)
 
 
 def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', material_scales: List[Figure] = []) -> Union[int,str]:
-    """Write CSV file with optional filename suggestion."""
+    """Write figures with optional filename suggestion.
+    
+    Args:
+        figure: a matplotlib figure
+        suggested_filename: a recommended file name
+        material_scales: figures representing material scales, in case when user saves a pdf file
+    
+    Returns:
+        either an integer error flag (-1 or -2) or a path to a saved file
+    """
     _, defaulttype = filetypes[0]
     path = tk.filedialog.asksaveasfilename(
         defaultextension=defaulttype[-4:], 
@@ -70,6 +79,16 @@ def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', m
         return -2  # Write error
 
 def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', material_scales: List[Figure] = []) -> Union[int,str]:
+    """Write several layouts in a single pdf with optional filename suggestion.
+    
+    Args:
+        figures: a list of matplotlib figures
+        suggested_filename: a recommended file name
+        material_scales: figures representing material scales, in case when user saves a pdf file
+    
+    Returns:
+        either an integer error flag (-1 or -2) or a path to a saved file
+    """
     defaultextension = ".pdf"
     path = tk.filedialog.asksaveasfilename(
         defaultextension=defaultextension, 
