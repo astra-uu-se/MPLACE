@@ -136,7 +136,9 @@ compd_mpc_path = "mzn/compd_default.mpc"
 - A new window opens with:
   - Plate view tabs (one per layout)
   - A panel showing materials and concentration scales
-- Figures are automatically saved as PNG files next to your CSV.
+- Click **"Save Layout(s)"** to export figures:
+  - **Single plate:** Choose format (PNG or PDF) and save location
+  - **Multiple plates:** Choose to save as individual PNG files or as a single multi-page PDF
 
 <!-- Visualization -->
 <p align="center">
@@ -145,8 +147,8 @@ compd_mpc_path = "mzn/compd_default.mpc"
 
 **What the app produces**
 - CSV: layout with wells and materials
-- PNG: plate visualization (auto-saved)
-- Optional: You can enhance the visualization by loading a *.dzn file so controls are shown as circles.
+- PNG/PDF: plate visualizations exported on demand from the visualization window
+- Optional: Load a *.dzn file before visualizing to show controls as circles instead of squares
 
 ## Plater format (export)
 
@@ -202,12 +204,12 @@ When generating a *.dzn, compounds and controls are entered as Python-like dicti
 **Colors repeat with many materials**
 - Current palette has ~20 distinct colors. Future versions will expand to 50+.
 
-**PNGs save to weird locations**
-- For simplicity, images are saved next to the CSV file with a generated name.
-
 **Exported PLATER files**
 - If multiple plates were generated, you will be prompted to save multiple files (one per plate). The completion dialog lists all saved file names.
 - If your analysis requires PLATER, prefer exporting in PLATER format; otherwise, use PharmBio.
+
+**How do I save figures?**
+- After visualizing, click "Save Layout(s)" in the visualization window. For multiple plates, choose PNG (individual files) or PDF (single file with all plates).
 
 
 ## Advanced (optional)
