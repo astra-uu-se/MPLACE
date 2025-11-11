@@ -36,7 +36,7 @@ import ast
 from typing import List, Dict, Union, Tuple
 
 from core.layout_utils import transform_coordinate, transform_index, transform_concentrations_to_alphas, to_number_if_possible, find_all_plates_concentrations
-from core.io_utils import read_csv_file, write_figure, write_figures_in_pdf
+from core.io_utils import read_csv_file, write_figure, write_figures_in_pdf, path_truncate
 from models.constants import Visualization, Performance, PlateDefaults, UI, WindowConfig, Messages, FileTypes
 from ui.layout_format_dialog import ask_layout_export_format
 
@@ -387,7 +387,6 @@ def visualize(file_path: str, figure_name_template: str, rows: str, cols: str,
                 tk.messagebox.showinfo("Saving Complete",f"Successfully saved layout file: {path}")
                 logger.info(f"Successfully saved layout file: {path}")
                 return
-            
     
     def cleanup_and_close() -> None:
         """Properly cleanup all matplotlib resources before closing."""
@@ -409,7 +408,7 @@ def visualize(file_path: str, figure_name_template: str, rows: str, cols: str,
     window.protocol('WM_DELETE_WINDOW', cleanup_and_close)  # Handle window X button
 
     # Add save button
-    save_button: ttk.Button = ttk.Button(window, text=Messages.BUTTON_SAVE_LAYOUT)
+    save_button: ttk.Button = ttk.Button(window, text=Messages.BUTTON_SAVE_LAYOUT, state=tk.NORMAL)
     save_button.grid(row=0, column=0, columnspan=2)
     save_button.configure(command=save_all_figures)
 
@@ -419,6 +418,12 @@ def visualize(file_path: str, figure_name_template: str, rows: str, cols: str,
                     control_names=ast.literal_eval(control_names),
                     figures_to_save=figures_to_save,
                     material_scales = material_scales)
+        if not figures_to_save:
+            save_button.configure(state=tk.DISABLED)
+            logger.info(f"File {file_path} contains no layouts. Visualization window is closed")
+            tk.messagebox.showinfo("No layouts", f"File {path_truncate(file_path)} contains no layouts to display. Closing the visualization window")
+            cleanup_and_close()
+            return
         if len(figures_to_save) > 1:
             save_button.configure(text=Messages.BUTTON_SAVE_LAYOUTS)
         window.geometry(f'+{WindowConfig.VIZ_WINDOW_X}+{WindowConfig.VIZ_WINDOW_Y}')
