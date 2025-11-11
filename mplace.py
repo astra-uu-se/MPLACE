@@ -16,8 +16,8 @@
 # Description:  Main window of the simple GUI for the workflow of generating with MiniZinc and displaying microplate layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.1
+# Last Revision: November 2025
 #
 
 
@@ -113,6 +113,7 @@ def reset_all() -> None:
     
     label_dzn_loaded.config(text=Messages.NO_DZN_LOADED)
     label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
+    # Disable buttons since no corresponding file is selected
     button_run_minizinc.config(state=tk.DISABLED)
     button_visualize.config(state=tk.DISABLED)
     logger.info("Application state reset to defaults")
@@ -255,7 +256,8 @@ def run_minizinc() -> None:
         label_csv_loaded.config(text='Layout generated. Choose export format...')
 
         # Ask user for export format with improved error handling
-        file_format = ask_layout_export_format(root)
+        file_format = ask_layout_export_format(root, [(FileTypes.PHARMBIO, FileTypes.PHARMBIO_LABEL),
+                                                      (FileTypes.PLATER,   FileTypes.PLATER_LABEL)])
         
         if file_format is None:
             logger.info("User cancelled export format selection - operation aborted")

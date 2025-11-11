@@ -16,8 +16,8 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.1
+# Last Revision: November 2025
 #
 
 
@@ -128,7 +128,8 @@ class Messages:
     BUTTON_LOAD_CSV = 'Load *.csv file'
     BUTTON_VISUALIZE = 'Visualize *.csv'
     BUTTON_RESET = 'Reset all'
-    BUTTON_SAVE_LAYOUTS = 'Save the layout(-s)'
+    BUTTON_SAVE_LAYOUT = 'Save the layout'
+    BUTTON_SAVE_LAYOUTS = 'Save layouts'
     
     # Label texts
     LABEL_ROWS = 'nb rows:'
@@ -138,6 +139,10 @@ class Messages:
     MODEL_PLAID = 'PLAID'
     MODEL_COMPD = 'COMPD'
     MODEL_OTHER = 'Other'
+    
+    # File saving error messages
+    WRITE_ERROR_TITLE = "File Write Error"
+    WRITE_ERROR_TEXT = "Failed to save the file. Check disk space and permissions."
 
 
 class WindowConfig:
@@ -165,17 +170,27 @@ class MaterialDefaults:
 
 class FileTypes:
     """File type constants for dialogs."""
-    DZN_FILES = [('dzn files', '*.dzn')]
-    CSV_FILES = [('csv files', '*.csv')]
+    DZN_FILES = [('dzn file', '*.dzn')]
+    CSV_FILES = [('csv file', '*.csv')]
+    PDF_FILES = [('pdf file', '*.pdf')]
+    PNG_FILES = [('png file', '*.png')]
+    FIG_FILES = [('png file', '*.png'),('pdf file', '*.pdf')]
     PHARMBIO_LABEL = 'CSV (PharmBio)'
     PLATER_LABEL = 'CSV (PLATER)'
     PHARMBIO = 'pharmbio'
     PLATER = 'plater'
+    PDF_LABEL = '*.PDF (all layouts in one file)'
+    PNG_LABEL = '*.PNG (one layout per file)'
+    PDF = 'pdf'
+    PNG = 'png'
 
 class PlaterFormat:
     """String constants for saving and reading Plater files."""
     DRUGS_LABEL = "Drug"
     CONCENTRATIONS_LABEL = "Concentration"
+
+class FigureProperties:
+    DPI = 300
 
 class Validation:
     """Input validation constants."""

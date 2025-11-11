@@ -16,32 +16,46 @@
 # Description:  A window where the user can select in which format to save the layout
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.1
+# Last Revision: November 2025
 #
 
-
+import logging
 import tkinter as tk
+
+from typing import List, Tuple
 
 from models.constants import FileTypes
 
 
-def ask_layout_export_format(parent) -> str:
+# Configure logging for utility module
+logger = logging.getLogger(__name__)
+
+
+def ask_layout_export_format(parent, file_formats: List[Tuple[str, str]] = []) -> str:
     '''Create a window where the user selects the desired format
+    
+    Args:
+        The list of possible file-formats
     
     Returns:
         Selected file-format flag
     '''
+    if not file_formats:
+        logger.debug(f"No file format is supplied for the file format selection window")
+        return
+    
     dialog = tk.Toplevel(parent)
     dialog.title("Export Format")
     dialog.grab_set()
     
     tk.Label(dialog, text="Choose export format for the layout file:").pack(padx = 10, pady=5)
     
-    var = tk.StringVar(dialog, value = FileTypes.PHARMBIO)
+    default_value, _ = file_formats[0]
+    var = tk.StringVar(dialog, value = default_value)
     
-    tk.Radiobutton(dialog, text=FileTypes.PHARMBIO_LABEL, variable=var, value=FileTypes.PHARMBIO).pack(pady = 5)
-    tk.Radiobutton(dialog, text=FileTypes.PLATER_LABEL, variable=var, value=FileTypes.PLATER).pack(pady = 5)
+    for (format_type, format_label) in file_formats:
+        tk.Radiobutton(dialog, text=format_label, variable=var, value=format_type).pack(pady = 5)
     
     result = None
     

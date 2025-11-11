@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to reading the config file
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.1
+# Last Revision: November 2025
 #
 
 

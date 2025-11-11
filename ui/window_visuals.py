@@ -16,8 +16,8 @@
 # Description:  GUI for displaying microplate layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.1
+# Last Revision: November 2025
 #
 
 
@@ -33,11 +33,13 @@ import tkinter as tk
 from tkinter import ttk, VERTICAL, RIGHT, Y, LEFT, BOTH
 
 import ast
-from typing import List, Dict, Sequence, Union
+from typing import List, Dict, Union, Tuple
 
 from core.layout_utils import transform_coordinate, transform_index, transform_concentrations_to_alphas, to_number_if_possible, find_all_plates_concentrations
-from core.io_utils import read_csv_file
-from models.constants import Visualization, Performance, PlateDefaults, UI, WindowConfig, Messages
+from core.io_utils import read_csv_file, write_figure, write_figures_in_pdf
+from models.constants import Visualization, Performance, PlateDefaults, UI, WindowConfig, Messages, FileTypes
+from ui.layout_format_dialog import ask_layout_export_format
+
 
 # Cache colormap at module level for performance optimization
 COLORMAP_TAB20 = pyplot.get_cmap('tab20')
@@ -46,8 +48,9 @@ COLORMAP_TAB20 = pyplot.get_cmap('tab20')
 logger = logging.getLogger(__name__)
 
 
-def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: Sequence[str], 
-                num_rows: int = PlateDefaults.ROWS_INT, num_cols: int = PlateDefaults.COLS_INT, control_names: Sequence[str] = ()) -> None:
+def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: List[str], 
+                num_rows: int = PlateDefaults.ROWS_INT, num_cols: int = PlateDefaults.COLS_INT,
+                control_names: List[str] = [], figures_to_save: List[Tuple[Figure, str]] = [], material_scales: List[Figure] = []) -> None:
     """Load CSV data, analyze it, split into layouts, and draw plates with material scales.
     
     Args:
@@ -57,6 +60,7 @@ def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: Sequen
         num_rows: Number of rows in microplate
         num_cols: Number of columns in microplate  
         control_names: List of control material names
+        figures_to_save: List to store (figure, suggested_name) tuples for later saving
     """
     layouts_dict, concentrations_list = find_all_plates_concentrations(text_array)
             
@@ -95,7 +99,7 @@ def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: Sequen
     for layout in layouts_dict:
         draw_plate(tab_control, figure_name_template, layout,
                    layouts_dict[layout], material_colors, alpha_mappings, 
-                   num_rows, num_cols, control_names)
+                   num_rows, num_cols, control_names, figures_to_save)
     tab_control.grid(row=1, column=0, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
 
     # Create scrollable material scale panel
@@ -118,7 +122,7 @@ def draw_plates(parent: tk.Widget, figure_name_template: str, text_array: Sequen
         material_color = material_colors[material]
         concentration_material = concentrations_list[material]
         draw_material_scale(scrollable_frame, material,
-                            material_color, concentration_material, alpha_mappings[material])
+                            material_color, concentration_material, alpha_mappings[material], material_scales)
 
     canvas_right.create_window((0, 0), window=scrollable_frame, anchor="nw")
     tab_control2.grid(row=1, column=1, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
@@ -134,9 +138,10 @@ def update_scroll_region(event: tk.Event, canvas: tk.Canvas) -> None:
     canvas.configure(scrollregion=canvas.bbox("all"))
 
 
-def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, layout_array: Sequence[Sequence[str]],
+def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, layout_array: List[List[str]],
                material_colors: Dict[str, np.ndarray], alpha_mappings: Dict[str, Dict[Union[str, float, int], float]],
-               num_rows: int = PlateDefaults.ROWS_INT, num_cols: int = PlateDefaults.COLS_INT, control_names: Sequence[str] = ()) -> None:
+               num_rows: int = PlateDefaults.ROWS_INT, num_cols: int = PlateDefaults.COLS_INT,
+               control_names: List[str] = [], figures_to_save: List[Tuple[Figure, str]] = []) -> None:
     """Draw a single microplate layout visualization.
     
     Args:
@@ -149,6 +154,7 @@ def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, lay
         num_rows: Number of rows in microplate
         num_cols: Number of columns in microplate
         control_names: List of control material names (shown as circles)
+        figures_to_save: List to store (figure, suggested_name) tuples for later saving
     """
     # Create figure
     fig = Figure()
@@ -224,9 +230,10 @@ def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, lay
 
         # Save figure with user-visible path confirmation
         png_path = figure_name_template + layout + '.png'
-        fig.savefig(png_path)
-        print(f"Saved visualization: {png_path}")
-        logger.info(f"PNG saved: {png_path}")
+        figures_to_save.append((fig,png_path))
+        #fig.savefig(png_path)
+        #print(f"Saved visualization: {png_path}")
+        #logger.info(f"PNG saved: {png_path}")
 
         # Create tab and canvas
         tab = ttk.Frame(parent)
@@ -250,8 +257,9 @@ def draw_plate(parent: ttk.Notebook, figure_name_template: str, layout: str, lay
 
 
 def draw_material_scale(parent: tk.Widget, material_name: str, color: np.ndarray, 
-                        concentrations: Sequence[Union[str, float, int]],
-                        alpha_mapping: Dict[Union[str, float, int], float]) -> None:
+                        concentrations: List[Union[str, float, int]],
+                        alpha_mapping: Dict[Union[str, float, int], float],
+                        material_scales: List[Figure]) -> None:
     """Draw a concentration scale for a specific material.
     
     Args:
@@ -283,6 +291,7 @@ def draw_material_scale(parent: tk.Widget, material_name: str, color: np.ndarray
         ax.set_xticks(x_ticks)
         ax.set_xticklabels(x_labels)
         ax.set_yticks([])  # Hide y-axis ticks as it's a 1D spectrum
+        material_scales.append(fig)
 
         tab2 = ttk.Frame(parent)
         canvas = FigureCanvasTkAgg(fig, master=tab2)
@@ -305,7 +314,7 @@ def draw_material_scale(parent: tk.Widget, material_name: str, color: np.ndarray
 
 
 def visualize(file_path: str, figure_name_template: str, rows: str, cols: str, 
-              control_names: str = PlateDefaults.CONTROL_NAMES) -> None:
+              control_names: List[str] = PlateDefaults.CONTROL_NAMES) -> None:
     """Main visualization window for microplate layouts.
     
     Args:
@@ -314,7 +323,72 @@ def visualize(file_path: str, figure_name_template: str, rows: str, cols: str,
         rows: Number of rows as string
         cols: Number of columns as string
         control_names: JSON string of control names (default: '[]')
-    """
+    """    
+    # Storage for figures to be saved on user command
+    # (generated by Perplexity AI)
+    figures_to_save: List[Tuple[Figure, str]] = []
+    material_scales: List[Figure] = []
+    def save_all_figures() -> None:
+        """Save all plate figures to PNG or PDF files on user command."""
+        if not figures_to_save:
+            # TODO: redo it as if when there are no figures, then make the button inactive
+            tk.messagebox.showinfo("No Figures", "No figures available to save.")
+            logger.warning("Save attempted but no figures were prepared")
+            return
+        elif len(figures_to_save) == 1:
+            figure, filename_template = figures_to_save[0]
+            path = write_figure(figure, FileTypes.FIG_FILES, filename_template, material_scales)
+            if path == -1:
+                logger.info("User cancelled figure save")
+                return
+            elif path == -2:
+                logger.error("Failed to write the figure file")
+                tk.messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
+                return
+            tk.messagebox.showinfo("Saving Complete",f"Successfully saved layout file: {path}")
+            logger.info(f"Successfully saved layout file: {path}")
+            return
+        elif len(figures_to_save) > 1:
+            file_format = ask_layout_export_format(window, [(FileTypes.PDF, FileTypes.PDF_LABEL),
+                                                            (FileTypes.PNG, FileTypes.PNG_LABEL)])
+            # format selection dialogue
+            # if png -> save 1-by-1
+            if file_format == FileTypes.PNG:
+                tk.messagebox.showinfo("Information",f"There are {len(figures_to_save)} plates. For each plate there will be a corresponding save file dialogue.")
+                saved_paths = []
+                for i in range(len(figures_to_save)):
+                    figure, filename_template = figures_to_save[i]
+                    path = write_figure(figure, FileTypes.PNG_FILES, filename_template)
+                    if path == -1:
+                        if i == 0:
+                            logger.info("User cancelled figures save")
+                            return
+                        else:
+                            logger.info(f"User cancelled saving on plate {i+1}/{len(figures_to_save)}")
+                            return
+                    elif path == -2:
+                        logger.error("Failed to write the figure file")
+                        tk.messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
+                        return
+                    saved_paths.append(path)
+                file_list = '\n'.join(f"• {p}" for p in saved_paths)
+                tk.messagebox.showinfo("Saving Complete",f"Successfully saved {len(figures_to_save)} layout files:\n\n{file_list}\n\n")
+                logger.info(f"Multi-file layout figures export completed: {len(figures_to_save)} files saved")
+                return
+            elif file_format == FileTypes.PDF:
+                path = write_figures_in_pdf(figures_to_save, figure_name_template, material_scales)
+                if path == -1:
+                    logger.info("User cancelled figure save")
+                    return
+                elif path == -2:
+                    logger.error("Failed to write the figure file")
+                    tk.messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
+                    return
+                tk.messagebox.showinfo("Saving Complete",f"Successfully saved layout file: {path}")
+                logger.info(f"Successfully saved layout file: {path}")
+                return
+            
+    
     def cleanup_and_close() -> None:
         """Properly cleanup all matplotlib resources before closing."""
         try:
@@ -334,15 +408,19 @@ def visualize(file_path: str, figure_name_template: str, rows: str, cols: str,
     window.title(WindowConfig.TITLE_VISUALIZER)
     window.protocol('WM_DELETE_WINDOW', cleanup_and_close)  # Handle window X button
 
-    # Add close button
-    #save_button: ttk.Button = ttk.Button(window, text=Messages.BUTTON_SAVE_LAYOUTS)
-    #save_button.grid(row=0, column=0, columnspan=2)
-    #save_button.configure(command=cleanup_and_close)
+    # Add save button
+    save_button: ttk.Button = ttk.Button(window, text=Messages.BUTTON_SAVE_LAYOUT)
+    save_button.grid(row=0, column=0, columnspan=2)
+    save_button.configure(command=save_all_figures)
 
     try:
         draw_plates(window, figure_name_template, read_csv_file(file_path),
                     num_rows=int(rows), num_cols=int(cols), 
-                    control_names=ast.literal_eval(control_names))
+                    control_names=ast.literal_eval(control_names),
+                    figures_to_save=figures_to_save,
+                    material_scales = material_scales)
+        if len(figures_to_save) > 1:
+            save_button.configure(text=Messages.BUTTON_SAVE_LAYOUTS)
         window.geometry(f'+{WindowConfig.VIZ_WINDOW_X}+{WindowConfig.VIZ_WINDOW_Y}')
         logger.debug("Visualization window geometry set, entering mainloop")
         window.mainloop()
