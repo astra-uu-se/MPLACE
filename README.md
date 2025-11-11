@@ -142,7 +142,7 @@ compd_mpc_path = "mzn/compd_default.mpc"
 
 <!-- Visualization -->
 <p align="center">
-  <img src="images/Visualize.png" alt="Plate visualization with materials (squares) and concentration (circles) legend" width="760">
+  <img src="images/visualize.png" alt="Plate visualization with materials (squares) and concentration (circles) legend" width="760">
 </p>
 
 **What the app produces**
