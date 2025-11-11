@@ -321,9 +321,26 @@ def path_show(path: str, label_object: tk.Label) -> None:
         prefix = Validation.PATH_TRUNCATION_PREFIX
     else:
         prefix = ''
-    display_text = 'File loaded: ' + prefix + path[-Validation.PATH_DISPLAY_MAX_LENGTH:]
+    display_text = 'File loaded: ' + path_truncate(path)
     label_object.config(text=display_text)
     logger.debug(f"UI updated with path: {display_text}")
+
+
+def path_truncate(path: str) -> str:
+    """Truncate path.
+    
+    Args:
+        path: File path to display
+        label_object: Tkinter label widget to update
+    
+    Returns:
+        truncated path
+    """
+    if len(path) >= Validation.PATH_DISPLAY_MAX_LENGTH:
+        prefix = Validation.PATH_TRUNCATION_PREFIX
+    else:
+        prefix = ''
+    return prefix + path[-Validation.PATH_DISPLAY_MAX_LENGTH:]
 
 
 def extract_csv_text(text: str) -> List[str]:
