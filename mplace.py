@@ -216,7 +216,7 @@ def run_minizinc() -> None:
     if use_compd_flag.get() == True:
         solver_config = compd_mpc_path.get()
         model_file = compd_path.get()
-        model_name = Messages.MODEL_OTHER
+        model_name = Messages.MODEL_COMPD
         print(f"Running {model_name} model...")
         logger.info(f"Starting MiniZinc execution with {model_name} model")
     else:
