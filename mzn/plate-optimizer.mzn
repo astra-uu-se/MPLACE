@@ -16,7 +16,7 @@
 % Description:  A microplate layout designer represented as an optimization problem
 %
 % Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-% Version: 1.2.5
+% Version: 1.2.6
 % Last Revision: November 2025
 %
 
@@ -780,45 +780,49 @@ array[1..num_plates_lines, 1..num_criteria_sets] of int: min_dist_criteria_count
 
 % Counting tensors - count number of elements per plate, quadrant, criteria set / concentration
 % Some are used for symmetry breaking constraints and some for the calculation of the distance criteria
-% TODO: check if I can just tie their conditions from flags emptywells_controls_compounds_concentrations_on_different_*
-%       to simply input flags concentrations_on_different_*
+function bool: well_excluded_by_optional_constraints(int: quadrant, int: plate, int: criteria) =
+            (quadrant in [1,3] -> not emptywells_controls_compounds_concentrations_on_different_rows_top[plate,criteria]) /\
+            (quadrant in [2,4] -> not emptywells_controls_compounds_concentrations_on_different_rows_btm[plate,criteria]) /\
+            (quadrant in [1,2] -> not emptywells_controls_compounds_concentrations_on_different_columns_lft[plate,criteria]) /\
+            (quadrant in [3,4] -> not emptywells_controls_compounds_concentrations_on_different_columns_rgt[plate,criteria]) /\
+            (quadrant in [1,3] -> not emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[plate,criteria]) /\
+            (quadrant in [2,4] -> not emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[plate,criteria]) /\
+            (quadrant in [1,2] -> not emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[plate,criteria]) /\
+            (quadrant in [3,4] -> not emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[plate,criteria]);
+
+function bool: well_included_by_optional_constraints(int: quadrant, int: plate, int: criteria) =
+            ((quadrant = 1 -> emptywells_controls_compounds_concentrations_on_different_rows_top[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_lft[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[plate,criteria]) /\
+             (quadrant = 2 -> emptywells_controls_compounds_concentrations_on_different_rows_btm[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_lft[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[plate,criteria]) /\
+             (quadrant = 3 -> emptywells_controls_compounds_concentrations_on_different_rows_top[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_rgt[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[plate,criteria]) /\
+             (quadrant = 4 -> emptywells_controls_compounds_concentrations_on_different_rows_btm[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_rgt[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[plate,criteria] \/
+                              emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[plate,criteria])
+             );
+
 array[1..num_plates_lines, 1..4, 1..num_criteria_sets] of int: quadrant_criteria_counts =
     array3d(1..num_plates_lines, 1..4, 1..num_criteria_sets,
-            [ sum([1 | k in 1..num_total_wells_line where emptywells_controls_compounds_criteria_ordered[p,k] = j
-                                                          /\ quadrant_wells_assignment[p,k] = i /\
+            [ sum([1 | k in 1..num_total_wells_line where emptywells_controls_compounds_criteria_ordered[p,k] = j /\
+                                                          quadrant_wells_assignment[p,k] = i /\
                                                           % Changed in 1.2: the splitting of the flags necessitated the change in how to account for them
-                                                         (i in [1,3] -> not emptywells_controls_compounds_concentrations_on_different_rows_top[p,j]) /\
-                                                         (i in [2,4] -> not emptywells_controls_compounds_concentrations_on_different_rows_btm[p,j]) /\
-                                                         (i in [1,2] -> not emptywells_controls_compounds_concentrations_on_different_columns_lft[p,j]) /\
-                                                         (i in [3,4] -> not emptywells_controls_compounds_concentrations_on_different_columns_rgt[p,j]) /\
-                                                         (i in [1,3] -> not emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[p,j]) /\
-                                                         (i in [2,4] -> not emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[p,j]) /\
-                                                         (i in [1,2] -> not emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[p,j]) /\
-                                                         (i in [3,4] -> not emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[p,j])
+                                                          well_excluded_by_optional_constraints(i,p,j)
                    ])
              | p in 1..num_plates_lines, i in 1..4, j in 1..num_criteria_sets]);
 array[1..num_plates_lines, 1..4, 1..len_emptywells_controls_compounds] of int: quadrant_on_different_rows_columns =
     array3d(1..num_plates_lines, 1..4, 1..len_emptywells_controls_compounds,
-            [ sum([1 | k in 1..num_total_wells_line where emptywells_controls_compounds_indices_ordered[p,k] = j
-                                                          /\ quadrant_wells_assignment[p,k] = i /\
+            [ sum([1 | k in 1..num_total_wells_line where emptywells_controls_compounds_indices_ordered[p,k] = j /\
+                                                          quadrant_wells_assignment[p,k] = i /\
                                                           % Changed in 1.2: the splitting of the flags necessitated the change in how to use them
-                                                          ((i = 1 -> emptywells_controls_compounds_concentrations_on_different_rows_top[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_lft[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[p,j]) /\
-                                                           (i = 2 -> emptywells_controls_compounds_concentrations_on_different_rows_btm[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_lft[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[p,j]) /\
-                                                           (i = 3 -> emptywells_controls_compounds_concentrations_on_different_rows_top[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_rgt[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[p,j]) /\
-                                                           (i = 4 -> emptywells_controls_compounds_concentrations_on_different_rows_btm[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_rgt[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[p,j] \/
-                                                                     emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[p,j])
-                                                           )
+                                                          well_included_by_optional_constraints(i,p,j)
                    ])
              | p in 1..num_plates_lines, i in 1..4, j in 1..len_emptywells_controls_compounds]);
 
@@ -899,16 +903,9 @@ constraint forall(p in 1..num_plates_lines, i in 1..num_total_wells_line
 constraint forall(p in 1..num_plates_lines, i in 1..4, j in 1..num_criteria_sets where (j = 1 -> use_min_dist_criteria[p,j]))
            (lex_chain_greater(array2d(1..2, 1..quadrant_criteria_counts[p,i,j],
                                       [emptywells_controls_compounds_coordinates[p,k,l] | l in 1..2, k in 1..num_total_wells_line
-                                       where emptywells_controls_compounds_criteria_ordered[p,k] = j
-                                             /\ quadrant_wells_assignment[p,k] = i /\
-                                             (i in [1,3] -> not emptywells_controls_compounds_concentrations_on_different_rows_top[p,j]) /\
-                                             (i in [2,4] -> not emptywells_controls_compounds_concentrations_on_different_rows_btm[p,j]) /\
-                                             (i in [1,2] -> not emptywells_controls_compounds_concentrations_on_different_columns_lft[p,j]) /\
-                                             (i in [3,4] -> not emptywells_controls_compounds_concentrations_on_different_columns_rgt[p,j]) /\
-                                             (i in [1,3] -> not emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[p,j]) /\
-                                             (i in [2,4] -> not emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[p,j]) /\
-                                             (i in [1,2] -> not emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[p,j]) /\
-                                             (i in [3,4] -> not emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[p,j]) /\
+                                       where emptywells_controls_compounds_criteria_ordered[p,k] = j /\
+                                             quadrant_wells_assignment[p,k] = i /\
+                                             well_excluded_by_optional_constraints(i,p,j) /\
                                              (j = 1 -> use_min_dist_criteria[p,j]) % exlude empty wells if not a part of the criteria
                                        ])));
 
@@ -916,24 +913,9 @@ constraint forall(p in 1..num_plates_lines, i in 1..4, j in 1..num_criteria_sets
 constraint forall(p in 1..num_plates_lines, i in 1..4, j in 1..len_emptywells_controls_compounds)
            (lex_chain_greater(array2d(1..2, 1..quadrant_on_different_rows_columns[p,i,j],
                                       [emptywells_controls_compounds_coordinates[p,k,l] | l in 1..2, k in 1..num_total_wells_line
-                                       where emptywells_controls_compounds_indices_ordered[p,k] = j
-                                             /\ quadrant_wells_assignment[p,k] = i /\
-                                             ((i = 1 -> emptywells_controls_compounds_concentrations_on_different_rows_top[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_lft[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[p,j]) /\
-                                              (i = 2 -> emptywells_controls_compounds_concentrations_on_different_rows_btm[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_lft[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc[p,j]) /\
-                                              (i = 3 -> emptywells_controls_compounds_concentrations_on_different_rows_top[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_rgt[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_rows_top_gcc[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[p,j]) /\
-                                              (i = 4 -> emptywells_controls_compounds_concentrations_on_different_rows_btm[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_rgt[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc[p,j] \/
-                                                        emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc[p,j]))
+                                       where emptywells_controls_compounds_indices_ordered[p,k] = j /\
+                                             quadrant_wells_assignment[p,k] = i /\
+                                             well_included_by_optional_constraints(i,p,j)
                                        ])));
 
 % Optional ctrs: apply all_different/gcc constraints when concentrations_on_different_rows and/or concentrations_on_different_columns WITHIN a plate
@@ -1334,5 +1316,5 @@ output [if not debugging then "plate_\(p),"
 
 output ["criteria function = "];
 output ["\(- min_distance * 1000 - min_distance_ctrs * 100 - sum(distances_edges_controls_compounds_minimum)))\n"];
-output [if true then show([min_distance] ++ distances_edges_controls_compounds_minimum) else "" endif];
-output [if true then "\n" else "" endif];
+output [if debugging then show([min_distance] ++ distances_edges_controls_compounds_minimum) else "" endif];
+output [if debugging then "\n" else "" endif];
