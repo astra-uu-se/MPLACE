@@ -16,8 +16,8 @@
 % Description:  A microplate layout designer represented as an optimization problem
 %
 % Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-% Version: 1.23
-% Last Revision: October 2025
+% Version: 1.2.4
+% Last Revision: November 2025
 %
 
 include "globals.mzn";
@@ -35,8 +35,7 @@ function var int: calculate_line_index(bool: edge_type, int: edge_size, int: lin
 
 %%%% Input Data  %%%%
 
-%% Information about 
-%constraints %%
+%% Information about constraints %%
 bool: allow_empty_wells;
 bool: replicates_on_different_plates;
 bool: replicates_on_same_plate;
@@ -89,7 +88,6 @@ array[int] of string: compound_concentration_indicators;
 opt bool: testing = false;
 opt bool: print_all = false;
 bool: debugging = testing /\ print_all default false;
-%bool: enforce = false;
 opt int: swap_search;
 opt bool: sorted_compounds;
 
@@ -103,12 +101,7 @@ constraint assert(vertical_cell_lines > 0,"Invalid datafile: Number of cell line
 constraint assert(horizontal_cell_lines > 0,"Invalid datafile: Number of cell lines should be larger than zero.");
 constraint assert(num_rows_line > 0,"Invalid datafile: Number of rows should be larger than zero.");
 constraint assert(num_cols_line > 0,"Invalid datafile: Number of columns should be larger than zero.");
-%constraint assert(compounds==0 \/ min(compound_replicates) > 0,"Invalid datafile: Number of replicates should be larger than zero.");
-%constraint assert(compounds==0 \/ min(compound_concentrations) > 0,"Invalid datafile: Number of concentrations should be larger than zero.");
 constraint assert((replicates_on_different_plates /\ replicates_on_same_plate) == false,"Invalid datafile: replicates cannot be both on the same plate and on different plates");
-% Next two ctrs are unapplicable to the current model
-%constraint assert(num_rows_line mod 2 == 0, "Invalid datafile: Currently we only support plate sizes that have an inner area with an even number of rows.");
-%constraint assert(num_cols_line mod 2 == 0, "Invalid datafile: Currently we only support plate sizes that have an inner area with an even number of columns." );
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -125,7 +118,6 @@ constraint assert((2*num_corner_empty_wells <= max([num_rows_line, num_cols_line
 
 
 %%% Model Parameters - tune to change performance / quality of a solution %%%
-% TODO: rewrite this block (and the corresponding part later) to be more clear (an easy fix)
 int: num_wells_set_criteria              = if num_total_wells_line < 300 then 90   else 120  endif;
 float: num_threshold_min_dist_criteria   = if num_total_wells_line < 300 then 0.35 else 0.25 endif;
 float: num_threshold_use_fake_edge_wells = if num_total_wells_line < 300 then 0.05 else 0.03 endif; 
@@ -140,7 +132,7 @@ int: num_forced_empty_wells_quadrant = num_corner_empty_wells * num_corner_empty
 int: num_forced_empty_wells_total = 4 * num_forced_empty_wells_quadrant;
 
 int: num_total_wells_line = num_rows_line * num_cols_line - num_forced_empty_wells_total;
-constraint assert(num_total_wells_line > 1, "Model ERROR! Number of wells within a plate line is \(num_total_wells_line) < 1. This should never happen!"); % VALIDATION
+constraint assert(num_total_wells_line > 1, "Model ERROR! Number of wells within a plate line is \(num_total_wells_line) < 1. This should never happen!");
 
 %% Number of wells needed. Note that plates might not be full
 int: num_total_wells = sum([compound_concentrations[i]*compound_replicates[i] | i in 1..compounds]) + total_controls; 
@@ -320,7 +312,7 @@ constraint assert(forall(p in 1..num_plates_lines, i in 1..len_emptywells_contro
                         (emptywells_controls_compounds_qtys[p,i] >= 0),
                   "Model ERROR! Negative assigned quantities of materials detected:\n" ++ show2d(emptywells_controls_compounds_qtys) ++ "\n"  ++ show(emptywells_controls_compounds_qtys_total) ++ "\nRecommendations: choose a different strategy (set 'replicates_on_same_plate = false' and, if needed, set 'replicates_on_different_plates = true')");
 
-array[int] of int: emptywells_controls_compounds_indices                      = [i | i in 1..len_emptywells_controls_compounds];
+array[int] of int: emptywells_controls_compounds_indices = [i | i in 1..len_emptywells_controls_compounds];
 % emptywells_controls_compounds_indices - a short-hand index to make modeling easier
 
 %%%%%%% Detecting some unsatisfiable cases & Data validation %%%%%%%%%%
@@ -492,12 +484,17 @@ int: quadrant_1_cols = if use_quadrant_distribution then ceil(num_cols_line / 2)
                 % if only 1 row/column per line no forced empty wells
 constraint assert(not use_quadrant_distribution -> (num_corner_empty_wells = 0), "Invalid data: no forced empty corners when there is only 1 row and/or 1 column.");
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% OPTIONAL CONSTRAINT FLAGS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % If concentrations_on_different_rows and/or concentrations_on_different_columns are true then:
 % - we exclude compounds concentrations during application of the symmetry-breaking lex_chain constraint within its criteria set
 % - we apply an all_different constraint on the relevant concentration later
 %   to account for this we need to collect flags to denote which compound concentrations on which plate will be subjected to this treatment
 % - we add an array - if the number of replicates of a concentration across all plates is less than the number of rows/columns
 %   then the all_different constraint isn't just applied per single plate but across all plates (a stronger constraint)
+
 array[int] of string: not_force_optional_ctrs = ["ew"];
 
 % Changes from version 1.1:
@@ -525,270 +522,182 @@ array[int] of string: not_force_optional_ctrs = ["ew"];
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_top =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-            elseif (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_rows_line / 2)) % quadrants I+III
-              then false
-              else true
-             endif
+               [% if there are only 1 row/column then we do not apply these constraints
+                use_quadrant_distribution /\
+		% no matter the flags, empty wells and controls are exempt from the treatment:
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                % the corresponding row/column flag must be enabled
+                concentrations_on_different_rows /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= floor(num_rows_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
+
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_btm =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-            elseif (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_rows_line / 2))  % quadrants II+IV
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= ceil(num_rows_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
+
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_lft =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-            elseif (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_cols_line / 2))  % quadrants I+II
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= ceil(num_cols_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
+
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_rgt =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-            elseif (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_cols_line / 2)) % quadrants III+IV
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= floor(num_cols_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
+% GCC variants - same pattern but checking > instead of <=
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_top_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-              else (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_rows_line / 2)) % quadrants I+III
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > floor(num_rows_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
+
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-              else (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_rows_line / 2))  % quadrants II+IV
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > ceil(num_rows_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
+
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-              else (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_cols_line / 2))  % quadrants I+II
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > ceil(num_cols_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
+
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-              else (sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_cols_line / 2)) % quadrants III+IV
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
+                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > floor(num_cols_line / 2)
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
-% Same flags but we're taking all the plates into account
+% Across-all-plates variants (summing across all plates)
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_top =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-            elseif (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_rows_line / 2)) % quadrants I+III
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [1,3] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= floor(num_rows_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
+
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_btm =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-            elseif (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_rows_line / 2))  % quadrants II+IV
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [2,4] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= ceil(num_rows_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
+
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_lft =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-            elseif (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_cols_line / 2))  % quadrants I+II
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [1,2] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= ceil(num_cols_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
+
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_rgt =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-            elseif (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_cols_line / 2)) % quadrants III+IV
-              then false
-              else true
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [3,4] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                <= floor(num_cols_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_top_gcc =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-              else (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_rows_line / 2)) % quadrants I+III
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [1,3] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > floor(num_rows_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
+
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_btm_gcc =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_rows
-              then false
-              else (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_rows_line / 2))  % quadrants II+IV
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_rows /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [2,4] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > ceil(num_rows_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
+
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_lft_gcc =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-              else (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > ceil(num_cols_line / 2))  % quadrants I+II
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [1,2] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > ceil(num_cols_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
+
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_rgt_gcc =
-                 % no matter the flags, empty wells and controls are exempt from the treatment
-               [if not use_quadrant_distribution
-			  then false
-			elseif emptywells_controls_compounds_categories[i] in not_force_optional_ctrs
-              then false
-                % if the input flag is false we use the default behaviour
-            elseif not concentrations_on_different_columns
-              then false
-              else (sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
-                                                           emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                    > floor(num_cols_line / 2)) % quadrants III+IV
-             endif
+               [use_quadrant_distribution /\
+                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
+                concentrations_on_different_columns /\
+                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
+                    where quadrant_wells_assignment[p,k] in [3,4] /\
+                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
+                > floor(num_cols_line / 2)
                 | i in 1..len_emptywells_controls_compounds];
 
 
