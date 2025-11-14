@@ -81,7 +81,7 @@ If the window opens, you're ready to go.
 Open `config/paths.ini` and check or edit the following lines:
 - `minizinc_path`: full path to your MiniZinc executable
 - `plaid_path`: the PLAID model file (included under mzn/, version of 30 September 2025)
-- `compd_path`: the COMPD model file (included under mzn/, version 1.2.8)
+- `compd_path`: the COMPD model file (included under mzn/, version 1.2.9)
 - `plaid_mpc_path`, `compd_mpc_path`: solver configuration files (included under mzn/)
 
 **Example (Windows):**
