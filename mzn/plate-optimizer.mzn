@@ -16,7 +16,7 @@
 % Description:  A microplate layout designer represented as an optimization problem
 %
 % Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-% Version: 1.2.7
+% Version: 1.2.8
 % Last Revision: November 2025
 %
 
@@ -509,186 +509,129 @@ array[int] of string: not_force_optional_ctrs = ["ew"];
 %  - ensure that every row/column is covered if there are too many wells with the criteria set (previously it was not enforced)
 %  - the previous point, potentially, can lead to increased performance as the number of well placements is reduced (to be tested)
 %
-% Note that this requires tweaking the symmetry-breaking constraints to ensure that 
+% Note that this requires tweaking the symmetry-breaking constraints to ensure that gcc flags are handled as well
+
+% Helper functions to compute optional constraint flags:
+function bool: optional_constraints_main_conditions(int: material, bool: global_flag) =
+    % if there are only 1 row/column then we do not apply these constraints /\ the corresponding row/column flag must be enabled:
+    use_quadrant_distribution /\ global_flag /\
+	% no matter the flags, empty wells and controls are exempt from the treatment:
+    not (emptywells_controls_compounds_categories[material] in not_force_optional_ctrs);
+function bool: compute_optional_constraint_flag_alldifferent(int: plate, int: material, set of int: target_quadrants, bool: global_flag, int: threshold) =
+    optional_constraints_main_conditions(material, global_flag) /\
+	% must not exceed the threshold:
+    sum(k in 1..num_total_wells_line where quadrant_wells_assignment[plate, k] in target_quadrants /\
+                                           emptywells_controls_compounds_indices_ordered[plate, k] = material)(1) <= threshold;
+function bool: compute_optional_constraint_flag_gcc(int: plate, int: material, set of int: target_quadrants, bool: global_flag, int: threshold) =
+    optional_constraints_main_conditions(material, global_flag) /\
+    % must exceed the threshold:
+    sum(k in 1..num_total_wells_line where quadrant_wells_assignment[plate, k] in target_quadrants /\
+                                           emptywells_controls_compounds_indices_ordered[plate, k] = material)(1) > threshold;
+function bool: compute_optional_constraint_flag_allplates_alldifferent(int: material, set of int: target_quadrants, bool: global_flag, int: threshold) =
+    % if there are only 1 row/column then we do not apply these constraints /\ the corresponding row/column flag must be enabled:
+    use_quadrant_distribution /\ global_flag /\
+	% no matter the flags, empty wells and controls are exempt from the treatment:
+    not (emptywells_controls_compounds_categories[material] in not_force_optional_ctrs) /\
+	% must not exceed the threshold:
+    sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p, k] in target_quadrants /\
+                                                                     emptywells_controls_compounds_indices_ordered[p, k] = material)(1) <= threshold;
+function bool: compute_optional_constraint_flag_allplates_gcc(int: material, set of int: target_quadrants, bool: global_flag, int: threshold) =
+    use_quadrant_distribution /\ global_flag /\
+    not (emptywells_controls_compounds_categories[material] in not_force_optional_ctrs) /\
+	% must exceed the threshold:
+    sum(p in 1..num_plates_lines, k in 1..num_total_wells_line where quadrant_wells_assignment[p, k] in target_quadrants /\
+                                                                     emptywells_controls_compounds_indices_ordered[p, k] = material)(1) > threshold;
+
+% Flags for optional constraints (all_different):
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_top =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [% if there are only 1 row/column then we do not apply these constraints
-                use_quadrant_distribution /\
-		% no matter the flags, empty wells and controls are exempt from the treatment:
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                % the corresponding row/column flag must be enabled
-                concentrations_on_different_rows /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= floor(num_rows_line / 2)
+               [compute_optional_constraint_flag_alldifferent(p, i, {1,3}, concentrations_on_different_rows, floor(num_rows_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_btm =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= ceil(num_rows_line / 2)
+               [compute_optional_constraint_flag_alldifferent(p, i, {2,4}, concentrations_on_different_rows, ceil(num_rows_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_lft =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= ceil(num_cols_line / 2)
+               [compute_optional_constraint_flag_alldifferent(p, i, {1,2}, concentrations_on_different_columns, ceil(num_cols_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_rgt =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= floor(num_cols_line / 2)
+               [compute_optional_constraint_flag_alldifferent(p, i, {3,4}, concentrations_on_different_columns, floor(num_cols_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
-% GCC variants - same pattern but checking > instead of <=
+% Flags for optional constraints (GCC):
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_top_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,3] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > floor(num_rows_line / 2)
+               [compute_optional_constraint_flag_gcc(p, i, {1,3}, concentrations_on_different_rows, floor(num_rows_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_btm_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [2,4] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > ceil(num_rows_line / 2)
+               [compute_optional_constraint_flag_gcc(p, i, {2,4}, concentrations_on_different_rows, ceil(num_rows_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_lft_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [1,2] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > ceil(num_cols_line / 2)
+               [compute_optional_constraint_flag_gcc(p, i, {1,2}, concentrations_on_different_columns, ceil(num_cols_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_rgt_gcc =
        array2d(1..num_plates_lines, 1..len_emptywells_controls_compounds,
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(k in 1..num_total_wells_line where quadrant_wells_assignment[p,k] in [3,4] /\
-                                                        emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > floor(num_cols_line / 2)
+               [compute_optional_constraint_flag_gcc(p, i, {3,4}, concentrations_on_different_columns, floor(num_cols_line / 2))
                 | p in 1..num_plates_lines, i in 1..len_emptywells_controls_compounds]);
 
-% Across-all-plates variants (summing across all plates)
+% Across all plates flags (summing across all plates, alldifferent):
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_top =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [1,3] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= floor(num_rows_line / 2)
+               [compute_optional_constraint_flag_allplates_alldifferent(i, {1,3}, concentrations_on_different_rows, floor(num_rows_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_btm =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [2,4] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= ceil(num_rows_line / 2)
+               [compute_optional_constraint_flag_allplates_alldifferent(i, {2,4}, concentrations_on_different_rows, ceil(num_rows_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_lft =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [1,2] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= ceil(num_cols_line / 2)
+               [compute_optional_constraint_flag_allplates_alldifferent(i, {1,2}, concentrations_on_different_columns, ceil(num_cols_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_rgt =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [3,4] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                <= floor(num_cols_line / 2)
+               [compute_optional_constraint_flag_allplates_alldifferent(i, {3,4}, concentrations_on_different_columns, floor(num_cols_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
+% Across all plates flags (gcc variant)
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_top_gcc =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [1,3] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > floor(num_rows_line / 2)
+               [compute_optional_constraint_flag_allplates_gcc(i, {1,3}, concentrations_on_different_rows, floor(num_rows_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_rows_all_plates_btm_gcc =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_rows /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [2,4] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > ceil(num_rows_line / 2)
+               [compute_optional_constraint_flag_allplates_gcc(i, {2,4}, concentrations_on_different_rows, ceil(num_rows_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_lft_gcc =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [1,2] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > ceil(num_cols_line / 2)
+               [compute_optional_constraint_flag_allplates_gcc(i, {1,2}, concentrations_on_different_columns, ceil(num_cols_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 array[1..len_emptywells_controls_compounds] of bool:
       emptywells_controls_compounds_concentrations_on_different_columns_all_plates_rgt_gcc =
-               [use_quadrant_distribution /\
-                not (emptywells_controls_compounds_categories[i] in not_force_optional_ctrs) /\
-                concentrations_on_different_columns /\
-                sum(p in 1..num_plates_lines, k in 1..num_total_wells_line 
-                    where quadrant_wells_assignment[p,k] in [3,4] /\
-                          emptywells_controls_compounds_indices_ordered[p,k] = i)(1)
-                > floor(num_cols_line / 2)
+               [compute_optional_constraint_flag_allplates_gcc(i, {3,4}, concentrations_on_different_columns, floor(num_cols_line / 2))
                 | i in 1..len_emptywells_controls_compounds];
 
 
