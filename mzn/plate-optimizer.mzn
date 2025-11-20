@@ -16,7 +16,7 @@
 % Description:  A microplate layout designer represented as an optimization problem
 %
 % Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-% Version: 1.2.9
+% Version: 1.3.0
 % Last Revision: November 2025
 %
 
@@ -692,35 +692,6 @@ int: num_edges_wells = num_edges + num_total_wells_line;
 
 int: len_min_dist_criteria = sum(p in 1..num_plates_lines)(length([1 | i in 1..num_criteria_sets where use_min_dist_criteria[p,i]]));
 
-array[1..num_plates_lines, 1..num_criteria_sets] of int: min_dist_criteria_counts = 
-                                array2d(1..num_plates_lines, 1..num_criteria_sets,
-                                        [sum(j in 1..len_emptywells_controls_compounds
-                                                  where emptywells_controls_compounds_criteria_sets_transformed[p,j] = i)
-                                            (emptywells_controls_compounds_qtys[p,j]) * use_min_dist_criteria[p,i]
-                                         | p in 1..num_plates_lines, i in 1..num_criteria_sets]);
-int: min_dist_criteria_counts_max = max(min_dist_criteria_counts);
-
-array[1..num_plates_lines, 1..num_criteria_sets] of int: min_dist_criteria_lengths =
-                                array2d(1..num_plates_lines, 1..num_criteria_sets,
-                                        [  (1 + min_dist_criteria_counts[p,i] * num_edges) * use_fake_edge_wells[p,i]
-                                         + (min_dist_criteria_counts[p,i] * (min_dist_criteria_counts[p,i] - 1)) div 2
-                                         | p in 1..num_plates_lines, i in 1..num_criteria_sets]);
-
-array[1..num_plates_lines] of int: min_dist_criteria_lengths_line =
-                                        [sum(row(min_dist_criteria_lengths,p)) | p in 1..num_plates_lines];
-
-array[1..num_plates_lines, 1..num_criteria_sets] of int: min_dist_criteria_counts_starts =
-                                array2d(1..num_plates_lines, 1..num_criteria_sets,
-                                        [1 
-                                         + sum(j in 1..(i-1))(min_dist_criteria_lengths[p,j])
-                                         + sum(p1 in 1..p-1)(min_dist_criteria_lengths_line[p1])
-                                         | p in 1..num_plates_lines, i in 1..num_criteria_sets]);
-array[1..num_plates_lines, 1..num_criteria_sets] of int: min_dist_criteria_counts_ends =
-                                array2d(1..num_plates_lines, 1..num_criteria_sets,
-                                        [  sum(j in 1..i)(min_dist_criteria_lengths[p,j])
-                                         + sum(p1 in 1..p-1)(min_dist_criteria_lengths_line[p1])
-                                         | p in 1..num_plates_lines, i in 1..num_criteria_sets]);
-
 % Counting tensors - count number of elements per plate, quadrant, criteria set / concentration
 % Some are used for symmetry breaking constraints and some for the calculation of the distance criteria
 function bool: well_excluded_by_optional_constraints(int: quadrant, int: plate, int: material) =
@@ -885,8 +856,7 @@ constraint apply_gcc_constraint_allplates(emptywells_controls_compounds_concentr
 % making sure that we don't place two or more materials in a same well with a lex_alldifferent constraint substitution placed upon replicate coordinates
 constraint forall(p in 1..num_plates_lines, i in 1..num_total_wells_line)
                  (wells_line_lex_all_different_substitute[p,i] = 
-                  (emptywells_controls_compounds_coordinates[p,i,1] - 1) * num_cols_line
-                   + emptywells_controls_compounds_coordinates[p,i,2]);
+                  (emptywells_controls_compounds_coordinates[p,i,1] - 1) * num_cols_line + emptywells_controls_compounds_coordinates[p,i,2]);
 
 constraint forall(p in 1..num_plates_lines, q in 1..4)
            (all_different([wells_line_lex_all_different_substitute[p,i] | i in 1..num_total_wells_line where quadrant_wells_assignment[p,i] = q
@@ -901,69 +871,39 @@ constraint forall(p in 1..num_plates_lines, q in 1..4)
 % - distances between fake edges are not calculated
 % - distances between a fake edge and a well are calculated if the well is under the group with true use_min_dist_criteria and use_fake_edge_wells
 % - distances between two wells are calculated if they are only under the same group AND the group is under use_min_dist_criteria flag
-array[1..sum(min_dist_criteria_lengths)] of var 1..(num_rows_line + num_cols_line): min_dist_criteria_vars::no_output;
 
-% Collecting minumum distances within sets
-constraint forall(p in 1..num_plates_lines, i in 1..num_criteria_sets where use_min_dist_criteria[p,i] /\ use_fake_edge_wells[p,i])
-                 (slice_1d( min_dist_criteria_vars,
-                           [min_dist_criteria_counts_starts[p,i]..min_dist_criteria_counts_ends[p,i]],
-                            1..min_dist_criteria_lengths[p,i])
-                  =    [min_dist_edges]
-                    ++ [distance_manhattan(row(edges, j),
-                                           [emptywells_controls_compounds_coordinates[p,k - num_edges,1],
-                                            emptywells_controls_compounds_coordinates[p,k - num_edges,2]])
-                        | k in num_edges+1..num_edges_wells, j in 1..num_edges
-                                                          where emptywells_controls_compounds_criteria_ordered[p,k - num_edges] = i]
-                    ++ [distance_manhattan([emptywells_controls_compounds_coordinates[p,j - num_edges,1],
-                                            emptywells_controls_compounds_coordinates[p,j - num_edges,2]],
-                                           [emptywells_controls_compounds_coordinates[p,k - num_edges,1],
-                                            emptywells_controls_compounds_coordinates[p,k - num_edges,2]])
-                        | j,k in num_edges+1..num_edges_wells
-                                      where (j < k) /\ (emptywells_controls_compounds_criteria_ordered[p,j - num_edges] = i)
-                                            /\ (emptywells_controls_compounds_criteria_ordered[p,k - num_edges] = i)]
-                  );
-constraint forall(p in 1..num_plates_lines, i in 1..num_criteria_sets where use_min_dist_criteria[p,i] /\ not use_fake_edge_wells[p,i])
-                 (slice_1d( min_dist_criteria_vars,
-                           [min_dist_criteria_counts_starts[p,i]..min_dist_criteria_counts_ends[p,i]],
-                            1..min_dist_criteria_lengths[p,i])
-                            =     [distance_manhattan([emptywells_controls_compounds_coordinates[p,j - num_edges,1],
-                                                       emptywells_controls_compounds_coordinates[p,j - num_edges,2]],
-                                                      [emptywells_controls_compounds_coordinates[p,k - num_edges,1],
-                                                       emptywells_controls_compounds_coordinates[p,k - num_edges,2]])
-                                   | j,k in num_edges+1..num_edges_wells
-                                      where (j < k) /\ (emptywells_controls_compounds_criteria_ordered[p,j - num_edges] = i)
-                                            /\ (emptywells_controls_compounds_criteria_ordered[p,k - num_edges] = i)]
-                  );
-
-array[1..len_min_dist_criteria] of var 1..max(2, num_rows_line + num_cols_line - 2):
-      distances_edges_controls_compounds_minimum;
-
-
-constraint forall(j in 1..len_min_dist_criteria)
-                 (distances_edges_controls_compounds_minimum[j] = 
-                     min(slice_1d(min_dist_criteria_vars,
-                                 [min_dist_criteria_counts_starts[distances_edges_controls_compounds_plates_match[j],
-                                                                  distances_edges_controls_compounds_sets_match[j]]
-                                  ..min_dist_criteria_counts_ends[distances_edges_controls_compounds_plates_match[j],
-                                                                  distances_edges_controls_compounds_sets_match[j]]],
-                                  1..min_dist_criteria_lengths[distances_edges_controls_compounds_plates_match[j],
-                                                               distances_edges_controls_compounds_sets_match[j]])
-                                  )
-                 );
-
+array[1..len_min_dist_criteria] of var 1..max(2, num_rows_line + num_cols_line - 2): distances_edges_controls_compounds_minimum;
+set of int: ctrs_criteria = {j | j in 1..len_min_dist_criteria where emptywells_controls_compounds_criteria_sets_categories[distances_edges_controls_compounds_plates_match[j],
+                                                                                                                            distances_edges_controls_compounds_sets_match[j]] = "ctrs"};
 var 1..max(2, num_rows_line + num_cols_line - 2): min_distance;
 var 1..max(2, num_rows_line + num_cols_line - 2): min_distance_ctrs;
 
-%constraint min_distance = if len_min_dist_criteria > 0 then min(min_dist_criteria_vars) else 1 endif;
 constraint min_distance = if len_min_dist_criteria > 0 then min(distances_edges_controls_compounds_minimum) else 1 endif;
-set of int: ctrs_criteria = {j | j in 1..len_min_dist_criteria 
-                             where emptywells_controls_compounds_criteria_sets_categories[
-                                     distances_edges_controls_compounds_plates_match[j],
-                                     distances_edges_controls_compounds_sets_match[j]] = "ctrs"};
 constraint min_distance_ctrs = if card(ctrs_criteria) > 0
                              then min([distances_edges_controls_compounds_minimum[j] | j in ctrs_criteria])
                              else 1 
                             endif;
+% Restricting minumum distances within sets
+constraint forall(i in 1..len_min_dist_criteria
+				          where use_min_dist_criteria[distances_edges_controls_compounds_plates_match[i],distances_edges_controls_compounds_sets_match[i]] /\
+		        		          use_fake_edge_wells[  distances_edges_controls_compounds_plates_match[i],distances_edges_controls_compounds_sets_match[i]])
+				        (forall(k in 1..num_total_wells_line, j in 1..num_edges where
+				                (emptywells_controls_compounds_criteria_ordered[distances_edges_controls_compounds_plates_match[i],k] = distances_edges_controls_compounds_sets_match[i]))
+                        (distance_manhattan(row(edges, j),
+                                            [emptywells_controls_compounds_coordinates[distances_edges_controls_compounds_plates_match[i],k,1],
+                                             emptywells_controls_compounds_coordinates[distances_edges_controls_compounds_plates_match[i],k,2]]) >= distances_edges_controls_compounds_minimum[i]
+			      ));
+constraint forall(i in 1..len_min_dist_criteria
+				          where use_min_dist_criteria[distances_edges_controls_compounds_plates_match[i],distances_edges_controls_compounds_sets_match[i]])
+				        (forall(j in 1..num_total_wells_line - 1, k in j + 1..num_total_wells_line where
+				                (distances_edges_controls_compounds_sets_match[i] = emptywells_controls_compounds_criteria_ordered[distances_edges_controls_compounds_plates_match[i],j]) /\
+				                (distances_edges_controls_compounds_sets_match[i] = emptywells_controls_compounds_criteria_ordered[distances_edges_controls_compounds_plates_match[i],k]))
+                       (distance_manhattan([emptywells_controls_compounds_coordinates[distances_edges_controls_compounds_plates_match[i],j,1],
+                                            emptywells_controls_compounds_coordinates[distances_edges_controls_compounds_plates_match[i],j,2]],
+                                           [emptywells_controls_compounds_coordinates[distances_edges_controls_compounds_plates_match[i],k,1],
+                                            emptywells_controls_compounds_coordinates[distances_edges_controls_compounds_plates_match[i],k,2]]) >= distances_edges_controls_compounds_minimum[i]
+                  ));
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1101,30 +1041,6 @@ output [if debugging then "use_fake_edge_wells =\n" else "" endif];
 output [if debugging then show2d(use_fake_edge_wells) else "" endif];
 output [if debugging then "\n\n" else "" endif];
 
-output [if debugging then "min_dist_criteria_counts =\n" else "" endif];
-output [if debugging then show2d(min_dist_criteria_counts) else "" endif];
-output [if debugging then "\n\n" else "" endif];
-
-output [if debugging then "min_dist_criteria_lengths =\n" else "" endif];
-output [if debugging then show2d(min_dist_criteria_lengths) else "" endif];
-output [if debugging then "\n\n" else "" endif];
-
-output [if debugging then "min_dist_criteria_lengths_line =\n" else "" endif];
-output [if debugging then show(min_dist_criteria_lengths_line) else "" endif];
-output [if debugging then "\n\n" else "" endif];
-
-output [if debugging then "min_dist_criteria_counts_starts =\n" else "" endif];
-output [if debugging then show2d(min_dist_criteria_counts_starts) else "" endif];
-output [if debugging then "\n\n" else "" endif];
-
-output [if debugging then "min_dist_criteria_counts_ends =\n" else "" endif];
-output [if debugging then show2d(min_dist_criteria_counts_ends) else "" endif];
-output [if debugging then "\n\n" else "" endif];
-
-output [if debugging then "quadrant_criteria_counts =\n" else "" endif];
-output [if debugging then show3d(quadrant_criteria_counts) else "" endif];
-output [if debugging then "\n\n" else "" endif];
-
 output [if debugging then "quadrant_on_different_rows_columns =\n" else "" endif];
 output [if debugging then show3d(quadrant_on_different_rows_columns) else "" endif];
 output [if debugging then "\n\n" else "" endif];
@@ -1167,6 +1083,6 @@ output [if not debugging then "plate_\(p),"
 
 
 output ["criteria function = "];
-output ["\(- min_distance * 1000 - min_distance_ctrs * 100 - sum(distances_edges_controls_compounds_minimum)))\n"];
+output ["\(- min_distance * 1000 - min_distance_ctrs * 100 - sum(distances_edges_controls_compounds_minimum))\n"];
 output [if debugging then show([min_distance] ++ distances_edges_controls_compounds_minimum) else "" endif];
 output [if debugging then "\n" else "" endif];
