@@ -16,7 +16,7 @@
 % Description:  A microplate layout designer represented as an optimization problem
 %
 % Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-% Version: 1.3.1
+% Version: 1.3.2
 % Last Revision: November 2025
 %
 
@@ -925,11 +925,27 @@ set of int: ctrs_criteria = {j | j in 1..len_min_dist_criteria where emptywells_
 var 1..max(2, num_rows_line + num_cols_line - 2): min_distance;
 var 1..max(2, num_rows_line + num_cols_line - 2): min_distance_ctrs;
 
-constraint min_distance = if len_min_dist_criteria > 0 then min(distances_edges_controls_compounds_minimum) else 1 endif;
-constraint min_distance_ctrs = if card(ctrs_criteria) > 0
-                             then min([distances_edges_controls_compounds_minimum[j] | j in ctrs_criteria])
-                             else 1 
-                            endif;
+% Define min_distance as the minimum across all criteria sets
+constraint if len_min_dist_criteria > 0 then
+    % All individual criteria distances must be >= overall minimum
+    forall(i in 1..len_min_dist_criteria)(
+        distances_edges_controls_compounds_minimum[i] >= min_distance
+    )
+else
+    % No criteria sets to optimize - set default value
+    min_distance = 1
+endif;
+
+% Define min_distance_ctrs as the minimum across control criteria sets only
+constraint if card(ctrs_criteria) > 0 then
+    % All control criteria distances must be >= control-specific minimum
+    forall(j in ctrs_criteria)(
+        distances_edges_controls_compounds_minimum[j] >= min_distance_ctrs
+    )
+else
+    % No control criteria sets - set default value
+    min_distance_ctrs = 1
+endif;
 % Restricting minimum distances within sets
 constraint forall(i in 1..len_min_dist_criteria
 				          where use_min_dist_criteria[distances_edges_controls_compounds_plates_match[i],distances_edges_controls_compounds_sets_match[i]] /\
