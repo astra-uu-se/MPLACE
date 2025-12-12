@@ -93,7 +93,7 @@ def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', ma
     path = tk.filedialog.asksaveasfilename(
         defaultextension=defaultextension, 
         filetypes=FileTypes.PDF_FILES,
-        initialfile=os.path.basename(suggested_filename[:-1]+defaultextension)
+        initialfile=os.path.basename(suggested_filename[:-4]+defaultextension)
     )
     
     if path is None or path == '':
