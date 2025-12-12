@@ -153,7 +153,7 @@ class MainView:
             self.button_run_minizinc.config(state=tk.DISABLED)
             logger.warning("Run Model button disabled - MiniZinc or all models unavailable")
         else:
-            self.button_run_model.config(state=tk.NORMAL)
+            self.button_run_minizinc.config(state=tk.NORMAL)
         
         # Disable radio buttons if corresponding model files are missing
         if self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
