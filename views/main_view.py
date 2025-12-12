@@ -220,7 +220,7 @@ class MainView:
         if not (self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER or 
                 (self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and 
                  self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER)):
-            self.button_run.config(state=tk.NORMAL)
+            self.button_run_minizinc.config(state=tk.NORMAL)
         return
     
     def _on_load_dzn(self) -> None:
