@@ -1,0 +1,111 @@
+# Copyright 2025 Ramiz Gindullin.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+# Description: Controller for MiniZinc model execution.
+# Handles running constraint programming models and processing output.
+#
+# Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
+# Version: 1.2
+# Last Revision: December 2025
+#
+
+import logging
+from typing import List
+from core.minizinc_runner import run_model
+from core.io_utils import extract_csv_text
+
+logger = logging.getLogger(__name__)
+
+
+class MiniZincController:
+    """
+    Handles MiniZinc execution.
+    
+    This controller runs MiniZinc models and processes their output
+    without any UI dependencies.
+    """
+    
+    def __init__(self):
+        """Initialize MiniZinc controller."""
+        logger.info("MiniZincController initialized")
+    
+    def run_model(
+        self,
+        minizinc_path: str,
+        solver_config: str,
+        model_file: str,
+        dzn_file: str
+    ) -> str:
+        """
+        Execute MiniZinc model.
+        
+        Args:
+            minizinc_path: Path to MiniZinc executable
+            solver_config: Path to solver configuration file (.mpc)
+            model_file: Path to model file (.mzn)
+            dzn_file: Path to data file (.dzn)
+            
+        Returns:
+            Raw MiniZinc output as string
+            
+        Raises:
+            RuntimeError: If MiniZinc execution fails
+            FileNotFoundError: If any required file is missing
+        """
+        logger.info(f"Running MiniZinc model: {model_file}")
+        logger.debug(f"Solver config: {solver_config}, DZN: {dzn_file}")
+        
+        try:
+            output = run_model(minizinc_path, solver_config, model_file, dzn_file)
+            logger.info("MiniZinc execution completed successfully")
+            return output
+            
+        except FileNotFoundError as e:
+            logger.error(f"Required file not found: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"MiniZinc execution failed: {e}")
+            raise RuntimeError(f"Model execution failed: {e}") from e
+    
+    def extract_csv_from_output(self, output: str) -> List[str]:
+        """
+        Extract CSV lines from MiniZinc output.
+        
+        The MiniZinc output contains various diagnostic information
+        along with the CSV data. This method extracts just the CSV lines.
+        
+        Args:
+            output: Raw MiniZinc output
+            
+        Returns:
+            List of CSV lines
+            
+        Raises:
+            ValueError: If no CSV data found in output
+        """
+        logger.debug("Extracting CSV from MiniZinc output")
+        
+        try:
+            csv_lines = extract_csv_text(output)
+            
+            if not csv_lines:
+                raise ValueError("No CSV data found in MiniZinc output")
+            
+            logger.info(f"Extracted {len(csv_lines)} CSV lines")
+            return csv_lines
+            
+        except Exception as e:
+            logger.error(f"Failed to extract CSV: {e}")
+            raise ValueError(f"Could not extract CSV from output: {e}") from e

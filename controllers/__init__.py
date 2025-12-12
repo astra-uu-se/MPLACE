@@ -13,21 +13,24 @@
 # limitations under the License.
 #
 #
-# Description: MPLACE data models.
-# Contains all data structures for application state and business objects.
+# Description: MPLACE controllers.
+# Contains business logic and orchestration between models and views.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
 # Last Revision: December 2025
 #
 
-from models.application_state import ApplicationState
-from models.dzn_data import DznFormData
-from models.csv_data import LayoutData, VisualizationState
+from controllers.main_controller import MainController
+from controllers.dzn_controller import DznController
+from controllers.minizinc_controller import MiniZincController
+from controllers.csv_controller import CsvController
+from controllers.viz_controller import VisualizationController
 
 __all__ = [
-    'ApplicationState',
-    'DznFormData',
-    'LayoutData',
-    'VisualizationState',
+    'MainController',
+    'DznController',
+    'MiniZincController',
+    'CsvController',
+    'VisualizationController',
 ]
