@@ -50,7 +50,25 @@ class DznFormData:
         compounds_dict: Dictionary of compounds and their concentrations
         controls_dict: Dictionary of controls and their concentrations
     """
-    
+    num_rows: str
+    num_cols: str
+    inner_empty_edge: bool
+    size_empty_edge: str
+    size_corner_empty_wells: str
+    horizontal_cell_lines: str
+    vertical_cell_lines: str
+    flag_allow_empty_wells: bool
+    flag_concentrations_on_different_rows: bool
+    flag_concentrations_on_different_columns: bool
+    flag_replicates_on_different_plates: bool
+    flag_replicates_on_same_plate: bool
+    compounds_dict: str
+    controls_dict: str
+
+
+@dataclass
+class DznBuildParams:
+    """Parameters for building DZN file content."""
     num_rows: str
     num_cols: str
     inner_empty_edge: bool

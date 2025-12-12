@@ -1,0 +1,532 @@
+# Copyright 2025 Ramiz Gindullin.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+#
+# Description:  Main window view for MPLACE application.
+# Pure view layer - handles only UI display and user input.
+#
+# Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
+# Version: 1.2
+# Last Revision: December 2025
+#
+
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+import logging
+import json
+import os
+from typing import Callable, List
+
+from controllers.main_controller import MainController
+from controllers.minizinc_controller import MiniZincController
+from controllers.csv_controller import CsvController
+from models.constants import PlateDefaults, UI, Messages, WindowConfig, FileTypes, PathsIni
+from core.io_utils import path_show
+from ui.ui_validators import numeric_entry_callback
+
+logger = logging.getLogger(__name__)
+
+# Recent files configuration
+MAX_RECENT = 7
+RECENT_DZN_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_dzn.json")
+RECENT_CSV_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_csv.json")
+
+
+class MainView:
+    """Main application window - pure view layer matching original."""
+    
+    def __init__(
+        self,
+        root: tk.Tk,
+        controller: MainController,
+        minizinc_controller: MiniZincController,
+        csv_controller: CsvController,
+        on_generate_dzn_clicked: Callable[[], None],
+        on_visualize_clicked: Callable[[], None]
+    ):
+        """Initialize main view matching original layout."""
+        logger.info("Initializing main view")
+        
+        self.root = root
+        self.controller = controller
+        self.minizinc_controller = minizinc_controller
+        self.csv_controller = csv_controller
+        self.on_generate_dzn_clicked = on_generate_dzn_clicked
+        self.on_visualize_clicked = on_visualize_clicked
+        
+        self.recent_dzn: List[str] = []
+        self.recent_csv: List[str] = []
+        
+        self._setup_window()
+        self._init_variables()
+        self._build_ui()
+        self._setup_menu()
+        self._load_recents()
+        self._refresh_recent_menus()
+        self.reset_all()
+        
+        logger.info("Main view initialized")
+    
+    def _setup_window(self) -> None:
+        """Configure main window."""
+        self.root.title(WindowConfig.TITLE_MAIN)
+        self.root.resizable(False, False)
+        self.root.protocol('WM_DELETE_WINDOW', self._on_close)
+    
+    def _init_variables(self) -> None:
+        """Initialize all Tkinter variables."""
+        self.dzn_file_path = tk.StringVar(self.root)
+        self.csv_file_path = tk.StringVar(self.root)
+        self.num_rows = tk.StringVar(self.root)
+        self.num_cols = tk.StringVar(self.root)
+        self.control_names = tk.StringVar(self.root)
+        self.use_compd_flag = tk.BooleanVar(self.root)
+        self.vcmd = (self.root.register(numeric_entry_callback))
+    
+    def _build_ui(self) -> None:
+        """Build UI matching original exactly."""
+        # Frame 1: DZN file generation/loading
+        self.frame_dzn = ttk.LabelFrame(self.root, text=Messages.FRAME_TITLE_DZN)
+        self.frame_dzn.pack(expand=True, fill="both", padx=UI.FRAME_PADDING, pady=UI.FRAME_PADDING)
+        
+        self.button_generate_dzn = ttk.Button(
+            self.frame_dzn, width=UI.BUTTON_WIDTH_STANDARD, state=tk.NORMAL,
+            text=Messages.BUTTON_GENERATE_DZN, command=self._on_generate_dzn
+        )
+        self.button_load_dzn = ttk.Button(
+            self.frame_dzn, width=UI.BUTTON_WIDTH_STANDARD, state=tk.NORMAL,
+            text=Messages.BUTTON_LOAD_DZN, command=self._on_load_dzn
+        )
+        self.label_dzn_loaded = tk.Label(self.frame_dzn, text=Messages.NO_DZN_LOADED)
+        
+        self.frame_dzn.columnconfigure(0, weight=UI.GRID_WEIGHT)
+        self.frame_dzn.columnconfigure(1, weight=UI.GRID_WEIGHT)
+        
+        self.button_generate_dzn.grid(row=0, column=0, columnspan=1, sticky="ew")
+        self.button_load_dzn.grid(row=0, column=1, columnspan=1, sticky="ew")
+        self.label_dzn_loaded.grid(row=1, column=0, columnspan=2, sticky="w")
+        
+        # Frame 2: CSV file generation/loading
+        self.frame_csv = ttk.LabelFrame(self.root, text=Messages.FRAME_TITLE_CSV)
+        self.frame_csv.pack(expand=True, fill="both", padx=UI.FRAME_PADDING, pady=UI.FRAME_PADDING)
+        
+        self.radio_plaid = ttk.Radiobutton(
+            self.frame_csv, text=Messages.MODEL_PLAID, value=UI.SELECT_PLAID, variable=self.use_compd_flag
+        )
+        self.radio_compd = ttk.Radiobutton(
+            self.frame_csv, text=Messages.MODEL_COMPD, value=UI.SELECT_COMPD, variable=self.use_compd_flag
+        )
+        self.button_run_minizinc = ttk.Button(
+            self.frame_csv, width=UI.BUTTON_WIDTH_STANDARD, state=tk.DISABLED,
+            text=Messages.BUTTON_RUN_MODEL, command=self._on_run_minizinc
+        )
+        self.button_load_csv = ttk.Button(
+            self.frame_csv, width=UI.BUTTON_WIDTH_STANDARD, state=tk.NORMAL,
+            text=Messages.BUTTON_LOAD_CSV, command=self._on_load_csv
+        )
+        self.label_csv_loaded = tk.Label(self.frame_csv, text=Messages.NO_CSV_LOADED)
+        
+        self.frame_csv.columnconfigure(0, weight=UI.GRID_WEIGHT)
+        self.frame_csv.columnconfigure(1, weight=UI.GRID_WEIGHT)
+        
+        self.radio_plaid.grid(row=0, column=0, columnspan=1, sticky="")
+        self.radio_compd.grid(row=0, column=1, columnspan=1, sticky="")
+        self.button_run_minizinc.grid(row=1, column=0, columnspan=1, sticky="ew")
+        self.button_load_csv.grid(row=1, column=1, columnspan=1, sticky="ew")
+        self.label_csv_loaded.grid(row=2, column=0, columnspan=2, sticky="w")
+        
+        # Disable Run Model button if MiniZinc unavailable or no models available
+        if (self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER or 
+            (self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and 
+             self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER)):
+            self.button_run_minizinc.config(state=tk.DISABLED)
+            logger.warning("Run Model button disabled - MiniZinc or all models unavailable")
+        else:
+            self.button_run_model.config(state=tk.NORMAL)
+        
+        # Disable radio buttons if corresponding model files are missing
+        if self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+            self.radio_plaid.config(state=tk.DISABLED)
+            self.radio_compd.config(state=tk.DISABLED)
+        if self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+            self.radio_plaid.config(state=tk.DISABLED)
+        if self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+            self.radio_compd.config(state=tk.DISABLED)
+        
+        # Frame 3: Visualization
+        self.frame_matplotlib = ttk.LabelFrame(self.root, text=Messages.FRAME_TITLE_VIZ)
+        self.frame_matplotlib.pack(expand=True, fill="both", padx=UI.FRAME_PADDING, pady=UI.FRAME_PADDING)
+        
+        self.label_rows = tk.Label(self.frame_matplotlib, text=Messages.LABEL_ROWS)
+        self.entry_rows = ttk.Entry(
+            self.frame_matplotlib, textvariable=self.num_rows, width=UI.ENTRY_WIDTH_NUMERIC,
+            validate='all', validatecommand=(self.vcmd, '%P')
+        )
+        self.label_cols = tk.Label(self.frame_matplotlib, text=Messages.LABEL_COLS)
+        self.entry_cols = ttk.Entry(
+            self.frame_matplotlib, textvariable=self.num_cols, width=UI.ENTRY_WIDTH_NUMERIC,
+            validate='all', validatecommand=(self.vcmd, '%P')
+        )
+        self.button_visualize = ttk.Button(
+            self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD, state=tk.DISABLED,
+            text=Messages.BUTTON_VISUALIZE, command=self._on_visualize
+        )
+        self.button_reset_all = ttk.Button(
+            self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD,
+            text=Messages.BUTTON_RESET, command=self.reset_all
+        )
+        
+        self.frame_matplotlib.columnconfigure(0, weight=UI.GRID_WEIGHT)
+        self.frame_matplotlib.columnconfigure(1, weight=UI.GRID_WEIGHT)
+        self.frame_matplotlib.columnconfigure(2, weight=UI.GRID_WEIGHT)
+        self.frame_matplotlib.columnconfigure(3, weight=UI.GRID_WEIGHT)
+        
+        self.label_rows.grid(row=0, column=0, columnspan=1, sticky="w")
+        self.entry_rows.grid(row=0, column=1, columnspan=1, sticky="w")
+        self.label_cols.grid(row=0, column=2, columnspan=1, sticky="w")
+        self.entry_cols.grid(row=0, column=3, columnspan=1, sticky="w")
+        self.button_visualize.grid(row=1, column=0, columnspan=2, sticky="ew")
+        self.button_reset_all.grid(row=1, column=2, columnspan=2, sticky="ew")
+    
+    def _setup_menu(self) -> None:
+        """Setup menu bar with recent files."""
+        self.menu_bar = tk.Menu(self.root)
+        self.menu_file = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_recent_dzn = tk.Menu(self.menu_file, tearoff=0)
+        self.menu_recent_csv = tk.Menu(self.menu_file, tearoff=0)
+        
+        self.menu_file.add_cascade(label="Recent DZN files", menu=self.menu_recent_dzn)
+        self.menu_file.add_cascade(label="Recent CSV files", menu=self.menu_recent_csv)
+        self.menu_bar.add_cascade(label="File", menu=self.menu_file)
+        self.root.config(menu=self.menu_bar)
+    
+    def _on_generate_dzn(self) -> None:
+        """Handle Generate DZN button click."""
+        logger.debug("Generate DZN button clicked")
+        self.on_generate_dzn_clicked()
+    
+    def _update_run_minizinc_button_state(self):
+        if not (self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER or 
+                (self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and 
+                 self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER)):
+            self.button_run.config(state=tk.NORMAL)
+        return
+    
+    def _on_load_dzn(self) -> None:
+        """Handle Load DZN button click."""
+        path = filedialog.askopenfilename(title='open dzn file', filetypes=FileTypes.DZN_FILES)
+        if path:
+            try:
+                path_show(path, self.label_dzn_loaded)
+                self.dzn_file_path.set(path)
+                cols, rows, controls = self.controller.parse_dzn_file(path)
+                self.num_cols.set(cols)
+                self.num_rows.set(rows)
+                self.control_names.set(controls)
+                print(f"Loaded DZN: {rows}x{cols} plate, controls: {controls}")
+                logger.info(f"DZN file loaded successfully: {path}")
+                self._update_run_minizinc_button_state()
+                self._add_to_recent(path, is_dzn=True)
+            except Exception as e:
+                logger.error(f"DZN loading failed: {path}, error: {e}")
+                messagebox.showerror("Error", f"Failed to load DZN file: {str(e)}")
+    
+    def _on_run_minizinc(self) -> None:
+        """Handle Run Model button click."""
+        model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
+        print(f"Running {model_name} model...")
+        logger.info(f"Starting MiniZinc execution with {model_name} model")
+    
+        original_text = self.label_csv_loaded.cget("text")
+        self.label_csv_loaded.config(text='Running the model...')
+        self.root.update_idletasks()
+    
+        try:
+            dzn_path = self.dzn_file_path.get()
+            use_compd = self.use_compd_flag.get()
+        
+            # Run model through MiniZincController
+            if use_compd:
+                output = self.minizinc_controller.run_compd_model(dzn_path)
+            else:
+                output = self.minizinc_controller.run_plaid_model(dzn_path)
+        
+            # Extract CSV from output
+            csv_lines = self.minizinc_controller.extract_csv_from_output(output)
+        
+            # Ask user for CSV format and save
+            csv_path = self._save_csv_with_format_choice(csv_lines)
+        
+            if csv_path:
+                self._update_csv_path(csv_path)
+                self._add_to_recent(csv_path, is_dzn=False)
+                print(f"Layout exported successfully: {os.path.basename(csv_path)}")
+                logger.info(f"MiniZinc execution completed: {csv_path}")
+            else:
+                self.label_csv_loaded.config(text=original_text)
+                logger.info("User cancelled CSV save")
+            
+        except Exception as e:
+            self.label_csv_loaded.config(text='MiniZinc execution failed')
+            logger.error(f"MiniZinc execution failed: {e}")
+            messagebox.showerror("Model Execution Error", 
+                               f"Failed to run {model_name} model.\n\n{str(e)}")
+                               
+    def _on_run_minizinc(self) -> None:
+        """Handle Run Model button click."""
+        from ui.layout_format_dialog import ask_layout_export_format
+        from models.constants import FileTypes
+        import os
+    
+        model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
+        print(f"Running {model_name} model...")
+        logger.info(f"Starting MiniZinc execution with {model_name} model")
+    
+        original_text = self.label_csv_loaded.cget("text")
+        self.label_csv_loaded.config(text='Running the model...')
+        self.root.update_idletasks()
+    
+        try:
+            dzn_path = self.dzn_file_path.get()
+            use_compd = self.use_compd_flag.get()
+        
+            # Run model through MiniZincController
+            if use_compd:
+                output = self.minizinc_controller.run_compd_model(dzn_path)
+            else:
+                output = self.minizinc_controller.run_plaid_model(dzn_path)
+        
+            # Extract CSV from output
+            csv_lines = self.minizinc_controller.extract_csv_from_output(output)
+        
+            # Generate suggested filename from DZN path
+            dzn_basename = os.path.basename(dzn_path)
+            suggested_csv_name = os.path.splitext(dzn_basename)[0] + '.csv'
+        
+            # Ask user for CSV format using existing dialog
+            file_formats = [
+                (FileTypes.CSV, "CSV (PharmBio) - default MPLACE format"),
+                (FileTypes.CSV_PLATER, "CSV (PLATER) - plate-shaped format for R package")
+            ]
+        
+            chosen_format = ask_layout_export_format(self.root, file_formats)
+        
+            if not chosen_format:
+                # User cancelled
+                self.label_csv_loaded.config(text=original_text)
+                logger.info("User cancelled format selection")
+                return
+        
+            # Save in chosen format
+            csv_path = None
+            if chosen_format == FileTypes.CSV_PLATER:
+                # PLATER format
+                rows = self.num_rows.get()
+                cols = self.num_cols.get()
+                paths = self.csv_controller.export_plater(csv_lines, rows, cols)
+                csv_path = paths[0] if paths else ""
+            else:
+                # PharmBio format (default) - pass suggested filename
+                csv_path = self.csv_controller.export_pharmbio(csv_lines, suggested_csv_name)
+        
+            # Check if csv_path is valid (not -1 or -2 error codes, and not empty string)
+            if csv_path and isinstance(csv_path, str) and csv_path not in ['', '-1', '-2']:
+                self._update_csv_path(csv_path)
+                self._add_to_recent(csv_path, is_dzn=False)
+                print(f"Layout exported successfully: {os.path.basename(csv_path)}")
+                logger.info(f"MiniZinc execution completed: {csv_path}")
+            else:
+                self.label_csv_loaded.config(text=original_text)
+                if csv_path in ['-1', '']:
+                    logger.info("User cancelled CSV save")
+                elif csv_path == '-2':
+                    logger.error("Failed to write CSV file")
+                    messagebox.showerror("File Write Error", "Could not write CSV file to disk.")
+            
+        except Exception as e:
+            self.label_csv_loaded.config(text='MiniZinc execution failed')
+            logger.error(f"MiniZinc execution failed: {e}")
+            messagebox.showerror("Model Execution Error", 
+                               f"Failed to run {model_name} model.\n\n{str(e)}")
+    
+    def _on_load_csv(self) -> None:
+        """Handle Load CSV button click."""
+        path = filedialog.askopenfilename(title='open csv file', filetypes=FileTypes.CSV_FILES)
+        if path:
+            try:
+                self._update_csv_path(path)
+                self._add_to_recent(path, is_dzn=False)
+                with open(path, 'r') as f:
+                    line_count = sum(1 for _ in f) - 1
+                print(f"Loaded CSV: {line_count} layout entries")
+                logger.info(f"CSV file loaded: {path}, {line_count} entries")
+            except Exception as e:
+                logger.error(f"CSV loading failed: {path}, error: {e}")
+                messagebox.showerror("Error", f"Failed to load CSV file: {str(e)}")
+    
+    def _on_visualize(self) -> None:
+        """Handle Visualize button click."""
+        logger.debug("Visualize button clicked")
+        self.on_visualize_clicked()
+    
+    def _on_close(self) -> None:
+        """Handle window close."""
+        logger.info("Application shutdown initiated")
+        self.root.destroy()
+    
+    def _load_recents(self) -> None:
+        """Load recent files from disk."""
+        def load_json(path):
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            return [str(x) for x in data if os.path.exists(x)]
+                except Exception:
+                    pass
+            return []
+        self.recent_dzn = load_json(RECENT_DZN_PATH)[:MAX_RECENT]
+        self.recent_csv = load_json(RECENT_CSV_PATH)[:MAX_RECENT]
+        logger.debug(f"Loaded {len(self.recent_dzn)} recent DZN, {len(self.recent_csv)} recent CSV")
+    
+    def _save_recents(self) -> None:
+        """Save recent files to disk."""
+        try:
+            with open(RECENT_DZN_PATH, "w", encoding="utf-8") as f:
+                json.dump(self.recent_dzn[:MAX_RECENT], f, indent=1, ensure_ascii=False)
+        except Exception:
+            pass
+        try:
+            with open(RECENT_CSV_PATH, "w", encoding="utf-8") as f:
+                json.dump(self.recent_csv[:MAX_RECENT], f, indent=1, ensure_ascii=False)
+        except Exception:
+            pass
+    
+    def _add_to_recent(self, path: str, is_dzn: bool) -> None:
+        """Add file to recent list."""
+        path = os.path.abspath(path)
+        lst = self.recent_dzn if is_dzn else self.recent_csv
+        if path in lst:
+            lst.remove(path)
+        lst.insert(0, path)
+        while len(lst) > MAX_RECENT:
+            lst.pop()
+        self._save_recents()
+        self._refresh_recent_menus()
+    
+    def _open_recent_file(self, path: str, is_dzn: bool) -> None:
+        """Load recent file."""
+        if not os.path.exists(path):
+            messagebox.showerror("File Not Found", f"Could not find file:\n{path}\n\nThe entry will be removed from menu.")
+            lst = self.recent_dzn if is_dzn else self.recent_csv
+            if path in lst:
+                lst.remove(path)
+                self._save_recents()
+                self._refresh_recent_menus()
+            return
+        if is_dzn:
+            self.dzn_file_path.set(path)
+            path_show(path, self.label_dzn_loaded)
+            try:
+                cols, rows, controls = self.controller.parse_dzn_file(path)
+                self.num_cols.set(cols)
+                self.num_rows.set(rows)
+                self.control_names.set(controls)
+            except Exception as e:
+                logger.debug(f"Failed to parse DZN from recent: {e}")
+            self._update_run_minizinc_button_state()
+            self._add_to_recent(path, True)
+        else:
+            self._update_csv_path(path)
+            self._add_to_recent(path, False)
+    
+    def _refresh_recent_menus(self) -> None:
+        """Refresh both recent file menus."""
+        self.menu_recent_dzn.delete(0, tk.END)
+        if not self.recent_dzn:
+            self.menu_recent_dzn.add_command(label="(No recent DZN)", state=tk.DISABLED)
+        else:
+            for fpath in self.recent_dzn:
+                display = fpath if len(fpath) <= 80 else "..." + fpath[-80:]
+                self.menu_recent_dzn.add_command(label=display, command=lambda p=fpath: self._open_recent_file(p, True))
+            self.menu_recent_dzn.add_separator()
+            self.menu_recent_dzn.add_command(label="Clear List", command=lambda: self._clear_recent(True))
+        
+        self.menu_recent_csv.delete(0, tk.END)
+        if not self.recent_csv:
+            self.menu_recent_csv.add_command(label="(No recent CSV)", state=tk.DISABLED)
+        else:
+            for fpath in self.recent_csv:
+                display = fpath if len(fpath) <= 80 else "..." + fpath[-80:]
+                self.menu_recent_csv.add_command(label=display, command=lambda p=fpath: self._open_recent_file(p, False))
+            self.menu_recent_csv.add_separator()
+            self.menu_recent_csv.add_command(label="Clear List", command=lambda: self._clear_recent(False))
+    
+    def _clear_recent(self, is_dzn: bool) -> None:
+        """Clear recent files list."""
+        if messagebox.askyesno("Clear Recent Files", "Remove all entries from this menu?"):
+            if is_dzn:
+                self.recent_dzn.clear()
+            else:
+                self.recent_csv.clear()
+            self._save_recents()
+            self._refresh_recent_menus()
+    
+    def _update_csv_path(self, path: str) -> None:
+        """Update CSV path and enable visualize button."""
+        path_show(path, self.label_csv_loaded)
+        self.csv_file_path.set(path)
+        self.button_visualize.config(state=tk.NORMAL)
+    
+        self.controller.load_csv_file(path)
+    
+        logger.info(f"CSV path updated: {path}")
+    
+    def update_after_dzn_generation(self, file_path: str, rows: str, cols: str, controls: str) -> None:
+        """Update UI after DZN generation completes."""
+        self.dzn_file_path.set(file_path)
+        self.num_rows.set(rows)
+        self.num_cols.set(cols)
+        self.control_names.set(controls)
+        path_show(file_path, self.label_dzn_loaded)
+        self._add_to_recent(file_path, is_dzn=True)
+        self._update_run_minizinc_button_state()
+        print(f"DZN integrated: {rows}x{cols} plate, controls: {controls}")
+        logger.info(f"DZN generation result integrated: {file_path}")
+    
+    def reset_all(self) -> None:
+        """Reset all form fields to defaults."""
+        self.dzn_file_path.set('')
+        self.csv_file_path.set('')
+        self.num_rows.set(PlateDefaults.ROWS)
+        self.num_cols.set(PlateDefaults.COLS)
+        self.control_names.set(PlateDefaults.CONTROL_NAMES)
+        self.use_compd_flag.set(UI.SELECT_PLAID)
+        self.label_dzn_loaded.config(text=Messages.NO_DZN_LOADED)
+        self.label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
+        self.button_run_minizinc.config(state=tk.DISABLED)
+        self.button_visualize.config(state=tk.DISABLED)
+        if str(self.radio_plaid.cget('state')) == tk.NORMAL:
+            self.use_compd_flag.set(UI.SELECT_PLAID)
+        elif str(self.radio_plaid.cget('state')) == tk.DISABLED and str(self.radio_compd.cget('state')) == tk.NORMAL:
+            self.use_compd_flag.set(UI.SELECT_COMPD)
+        else:
+            self.use_compd_flag.set(UI.SELECT_PLAID)
+        logger.info("Application state reset to defaults")
+    
+    def show(self) -> None:
+        """Show main window and start event loop."""
+        logger.debug("Starting main window event loop")
+        self.root.mainloop()

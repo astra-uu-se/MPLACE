@@ -23,6 +23,7 @@
 
 import logging
 from typing import List
+from models.dto import AppConfig
 from core.minizinc_runner import run_model
 from core.io_utils import extract_csv_text
 
@@ -37,9 +38,61 @@ class MiniZincController:
     without any UI dependencies.
     """
     
-    def __init__(self):
-        """Initialize MiniZinc controller."""
-        logger.info("MiniZincController initialized")
+    def __init__(self, app_config: AppConfig):
+        """Initialize MiniZinc controller with application configuration.
+        
+        Args:
+            app_config: Configuration loaded from paths.ini containing
+                       paths to MiniZinc executable and model files
+        """
+        self.app_config = app_config
+        logger.info("MiniZincController initialized with config")
+    
+    def run_plaid_model(self, dzn_file: str) -> str:
+        """
+        Execute PLAID model with configured paths.
+        
+        Args:
+            dzn_file: Path to data file (.dzn)
+            
+        Returns:
+            Raw MiniZinc output as string
+            
+        Raises:
+            RuntimeError: If MiniZinc execution fails
+            FileNotFoundError: If any required file is missing
+        """
+        logger.info(f"Running PLAID model with DZN: {dzn_file}")
+        
+        return self.run_model(
+            minizinc_path=self.app_config.minizinc_path,
+            solver_config=self.app_config.plaid_mpc_path,
+            model_file=self.app_config.plaid_path,
+            dzn_file=dzn_file
+        )
+    
+    def run_compd_model(self, dzn_file: str) -> str:
+        """
+        Execute COMPD model with configured paths.
+        
+        Args:
+            dzn_file: Path to data file (.dzn)
+            
+        Returns:
+            Raw MiniZinc output as string
+            
+        Raises:
+            RuntimeError: If MiniZinc execution fails
+            FileNotFoundError: If any required file is missing
+        """
+        logger.info(f"Running COMPD model with DZN: {dzn_file}")
+        
+        return self.run_model(
+            minizinc_path=self.app_config.minizinc_path,
+            solver_config=self.app_config.compd_mpc_path,
+            model_file=self.app_config.compd_path,
+            dzn_file=dzn_file
+        )
     
     def run_model(
         self,
@@ -49,7 +102,7 @@ class MiniZincController:
         dzn_file: str
     ) -> str:
         """
-        Execute MiniZinc model.
+        Execute MiniZinc model with specified paths.
         
         Args:
             minizinc_path: Path to MiniZinc executable
@@ -65,6 +118,7 @@ class MiniZincController:
             FileNotFoundError: If any required file is missing
         """
         logger.info(f"Running MiniZinc model: {model_file}")
+        logger.debug(f"MiniZinc path: {minizinc_path}")
         logger.debug(f"Solver config: {solver_config}, DZN: {dzn_file}")
         
         try:

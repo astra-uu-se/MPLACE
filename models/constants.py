@@ -48,11 +48,19 @@ class PlateDefaults:
 class UI:
     """User interface layout constants."""
     # Widget dimensions
+    BUTTON_WIDTH = 13
     BUTTON_WIDTH_STANDARD = 13
     ENTRY_WIDTH_NUMERIC = 6
     ENTRY_WIDTH_MATERIALS = 33
     
     # Padding and spacing
+    PADDING_FRAME = 10
+    PADDING_LABELFRAME = 10
+    PADDING_BETWEEN_FRAMES = 5
+    PADDING_BUTTON = 5
+    PADDING_LABEL = 5
+    PADDING_RADIOBUTTON = 10
+    
     FRAME_PADDING = 10
     GRID_PADDING = 3
     SMALL_PADDING = 2
@@ -109,18 +117,28 @@ class PathsIni:
     PLAID_MPC_PREFIX = 'plaid_mpc_path'
     COMPD_MPC_PREFIX = 'compd_mpc_path'
     FILE_ERROR_PLACEHOLDER = 'invalid data'
+    
+    # Default paths (update these to match your system)
+    MINIZINC = 'minizinc'  # Assumes minizinc is in PATH
+    PLAID = './mzn/plate-design.mzn'
+    PLAID_MPC = './mzn/plaid_default.mpc'
+    COMPD = './mzn/plate-optimizer.mzn'
+    COMPD_MPC = './mzn/compd_default.mpc'
 
 
 class Messages:
     """User interface messages and labels."""
     # Status messages
+    NO_FILE_LOADED = 'No file is loaded'
+    LOAD_DZN_FIRST = 'Load DZN file first'
     NO_DZN_LOADED = 'No *.dzn file is loaded'
     NO_CSV_LOADED = 'No *.csv file is loaded'
     
     # Dialog titles and labels
     FRAME_TITLE_DZN = 'Step 1 - Generate OR load the *.dzn file:'
-    FRAME_TITLE_CSV = 'Step 2 - Generate OR load the layout (*.csv):'
-    FRAME_TITLE_VIZ = 'Step 3 - Visualize the layout (*.csv):'
+    FRAME_TITLE_MODEL = 'Step 2 - Run model'
+    FRAME_TITLE_CSV = 'Step 3 - Generate OR load the layout (*.csv):'
+    FRAME_TITLE_VIZ = 'Step 4 - Visualize the layout (*.csv):'
     
     BUTTON_GENERATE_DZN = 'Generate *.dzn file'
     BUTTON_LOAD_DZN = 'Load *.dzn file'
@@ -152,6 +170,9 @@ class WindowConfig:
     TITLE_DZN_GENERATOR = "Generate *.dzn file"
     TITLE_VISUALIZER = "Visualize GUI"
     
+    # Window geometry
+    GEOMETRY_MAIN = "400x400"
+    
     # Window positions (x, y offsets)
     DZN_WINDOW_X = 30
     DZN_WINDOW_Y = 30
@@ -177,6 +198,8 @@ class FileTypes:
     FIG_FILES = [('png file', '*.png'),('pdf file', '*.pdf')]
     PHARMBIO_LABEL = 'CSV (PharmBio)'
     PLATER_LABEL = 'CSV (PLATER)'
+    CSV = 'pharmbio'
+    CSV_PLATER = 'plater'
     PHARMBIO = 'pharmbio'
     PLATER = 'plater'
     PDF_LABEL = '*.PDF (all layouts in one file)'
