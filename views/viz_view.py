@@ -122,8 +122,8 @@ class VizView:
             viz_state = self.viz_controller.prepare_visualization(
                 csv_path=file_path,
                 template=figure_name_template,
-                rows=int(rows),
-                cols=int(cols),
+                rows=rows,
+                cols=cols,
                 controls=control_names
             )
             

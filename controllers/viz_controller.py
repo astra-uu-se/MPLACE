@@ -95,9 +95,12 @@ class VisualizationController:
             # Parse control names
             try:
                 control_list = ast.literal_eval(controls) if controls else []
-            except Exception as e:
-                logger.warning(f"Failed to parse control names, using empty list: {e}")
+            except (SyntaxError, ValueError) as e:
+                logger.warning(f"Invalid control names format: {e}. Using empty list")
                 control_list = []
+            except Exception as e:
+                logger.error(f"Unexpected error parsing controls: {e}")
+                raise
             
             try:
                 rows_int = int(rows)
@@ -281,30 +284,6 @@ class VisualizationController:
     def _generate_colors(self, concentrations_list: Dict[str, List[Any]]) -> Dict[str, Any]:
         """
         Generate color mappings for materials.
-    
-        Args:
-            concentrations_list: Dictionary of materials to concentrations
-        
-        Returns:
-            Dictionary mapping materials to colors
-        """
-        from matplotlib import pyplot as plt
-    
-        material_colors = {}
-        colormap = plt.get_cmap('tab20')
-        num_colors = Performance.COLORMAP_COLOR_LIMIT
-    
-        for idx, material in enumerate(concentrations_list.keys()):
-            color_idx = idx % num_colors
-            material_colors[material] = colormap(color_idx)
-    
-        logger.debug(f"Generated colors for {len(material_colors)} materials")
-        return material_colors
-    
-    
-    def _generate_colors(self, concentrations_list: Dict[str, List[Any]]) -> Dict[str, Any]:
-        """
-        Generate color mappings for materials.
         
         Args:
             concentrations_list: Dictionary of materials to concentrations
@@ -324,15 +303,3 @@ class VisualizationController:
         
         logger.debug(f"Generated colors for {len(material_colors)} materials")
         return material_colors
-    
-    def get_export_format_choice(self, num_figures: int) -> str:
-        """
-        Determine appropriate export format based on number of figures.
-        
-        Args:
-            num_figures: Number of figures to export
-            
-        Returns:
-            'single' for one figure, 'multiple' for many
-        """
-        return 'single' if num_figures == 1 else 'multiple'
