@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,14 +18,20 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
-# Last Revision: December 2025
+# Last Revision: January 2026
 #
 
 import logging
 from typing import List, Optional, Tuple
+from config.loader import load_config
 from models.application_state import ApplicationState
+from models.dto import AppConfig
 from core.dzn_parser import scan_dzn
 from core.io_utils import read_csv_file
+from controllers.dzn_controller import DznController
+from controllers.csv_controller import CsvController
+from controllers.minizinc_controller import MiniZincController
+from controllers.viz_controller import VisualizationController
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +55,21 @@ class MainController:
             state: Application state to manage
         """
         self.state = state
+        
+        # Load configuration from paths.ini
+        try:
+            self.app_config: AppConfig = load_config()
+            logger.info("Configuration loaded successfully")
+        except FileNotFoundError as e:
+            logger.error(f"Configuration loading failed: {e}")
+            raise
+        
+        # Initialize child controllers (they'll receive config as needed)
+        self.dzn_controller = DznController()
+        self.csv_controller = CsvController()
+        self.minizinc_controller = MiniZincController(self.app_config)
+        self.viz_controller = VisualizationController()
+        
         logger.info("MainController initialized")
     
     def load_dzn_file(self, path: str) -> None:
@@ -89,6 +110,38 @@ class MainController:
             logger.error(f"Failed to load DZN file: {e}")
             raise ValueError(f"Invalid DZN file format: {e}") from e
     
+    def parse_dzn_file(self, path: str) -> Tuple[str, str, str]:
+        """
+        Parse DZN file to extract plate dimensions and controls.
+    
+        This is a lightweight operation that extracts metadata and then
+        updates the application state. Used when loading DZN from disk.
+    
+        Args:
+            path: Path to DZN file
+        
+        Returns:
+            Tuple of (num_cols, num_rows, control_names) as strings
+        
+        Raises:
+            FileNotFoundError: If DZN file doesn't exist
+            ValueError: If DZN file format is invalid
+        """
+        logger.debug(f"Parsing DZN file: {path}")
+        try:
+            cols, rows, controls = scan_dzn(path)
+            self.state.num_cols = cols
+            self.state.num_rows = rows
+            self.state.control_names = controls
+            self.state.dzn_file_path = path
+            return (cols, rows, controls)
+        except FileNotFoundError as e:
+            logger.error(f"DZN file not found: {path}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to parse DZN file: {e}")
+            raise ValueError(f"Invalid DZN file format: {e}") from e
+    
     def load_csv_file(self, path: str) -> None:
         """
         Load CSV file and update application state.
@@ -109,7 +162,7 @@ class MainController:
             # Read and validate CSV
             csv_data = read_csv_file(path)
             
-            if not csv_data or len(csv_data) == 0:
+            if not csv_data:
                 raise ValueError("CSV file is empty")
             
             # Update state

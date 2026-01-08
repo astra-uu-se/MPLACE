@@ -13,21 +13,16 @@
 # limitations under the License.
 #
 #
-# Description: MPLACE data models.
-# Contains all data structures for application state and business objects.
+# Description:  View layer for MPLACE application.
+# Pure UI components with no business logic.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
 # Last Revision: December 2025
 #
 
-from models.application_state import ApplicationState
-from models.dzn_data import DznFormData, DznBuildParams
-from models.csv_data import VisualizationState
+from views.main_view import MainView
+from views.dzn_view import DznView
+from views.viz_view import VizView
 
-__all__ = [
-    'ApplicationState',
-    'DznFormData',
-    'DznBuildParams',
-    'VisualizationState'
-]
+__all__ = ['MainView', 'DznView', 'VizView']

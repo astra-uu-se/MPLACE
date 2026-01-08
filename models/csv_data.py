@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,8 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
-# Last Revision: December 2025
+# Last Revision: January 2026
 #
-
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, Any
@@ -63,8 +62,11 @@ class VisualizationState:
         num_rows: Number of rows in the plate
         num_cols: Number of columns in the plate
         control_names: List of control material names
+        plates: Dictionary of plate layouts
+        concentrations: Dictionary of material concentrations
+        alpha_mappings: Alpha transparency mappings
+        material_colors: Color mappings for materials
     """
-    
     figures_to_save: List[Tuple[mpl_figure.Figure, str]] = field(default_factory=list)
     material_scales: List[mpl_figure.Figure] = field(default_factory=list)
     file_path: str = ''
@@ -72,6 +74,13 @@ class VisualizationState:
     num_rows: int = 16
     num_cols: int = 24
     control_names: List[str] = field(default_factory=list)
+    plates: Dict[str, List] = field(default_factory=dict)
+    concentrations: Dict[str, List[Any]] = field(default_factory=dict)
+    alpha_mappings: Dict[str, Dict[Any, float]] = field(default_factory=dict)
+    material_colors: Dict[str, Any] = field(default_factory=dict)
+    
+    # ... rest of methods unchanged
+
     
     def has_figures(self) -> bool:
         """Check if there are figures ready to save."""
