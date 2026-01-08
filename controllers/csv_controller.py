@@ -58,6 +58,9 @@ class CsvController:
         Raises:
             IOError: If file write fails
         """
+        if not csv_lines:
+            raise ValueError("CSV lines cannot be empty")
+        
         logger.info(f"Exporting PharmBio CSV with suggested name: {suggested_name}")
     
         # Ensure suggested_name doesn't have .csv extension (write_csv_file adds it)
@@ -100,10 +103,9 @@ class CsvController:
             ValueError: If conversion fails
             IOError: If file write fails
         """
-        from models.dto import CSVConversionRequest
-        from core.io_utils import convert_pharmbio_to_plater, write_csv_file
-        import os
-    
+        if not csv_lines:
+            raise ValueError("CSV lines cannot be empty")
+            
         logger.info("Exporting PLATER CSV format")
     
         try:

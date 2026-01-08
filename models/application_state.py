@@ -24,6 +24,8 @@
 from dataclasses import dataclass, field
 from typing import List
 
+from models.constants import PlateDefaults
+
 
 @dataclass
 class ApplicationState:
@@ -54,8 +56,8 @@ class ApplicationState:
     csv_file_path: str = ''
     
     # Plate configuration
-    num_rows: str = '16'
-    num_cols: str = '24'
+    num_rows: str = PlateDefaults.ROWS
+    num_cols: str = PlateDefaults.COLS
     control_names: str = '[]'
     
     # Model selection

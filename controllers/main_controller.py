@@ -114,8 +114,8 @@ class MainController:
         """
         Parse DZN file to extract plate dimensions and controls.
     
-        This is a lightweight operation that extracts metadata without
-        updating the application state. Used when loading DZN from disk.
+        This is a lightweight operation that extracts metadata and then
+        updates the application state. Used when loading DZN from disk.
     
         Args:
             path: Path to DZN file

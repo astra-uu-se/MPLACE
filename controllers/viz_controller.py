@@ -115,8 +115,8 @@ class VisualizationController:
             state = VisualizationState(
                 file_path=csv_path,
                 figure_name_template=template,
-                num_rows=int(rows),
-                num_cols=int(cols),
+                num_rows=rows_int,
+                num_cols=cols_int,
                 control_names=control_list
             )
         

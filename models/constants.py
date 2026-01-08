@@ -232,3 +232,10 @@ class System:
     
     # Time delays
     UI_UPDATE_DELAY = 0  # seconds
+
+class DznErrors:
+    EMPTY_FIELDS = "All fields must be filled in"
+    NO_MATERIALS = "Must specify at least one compound or control"
+
+class CsvErrors:
+    INVALID_FORMAT = "Invalid CSV file format"

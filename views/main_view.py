@@ -321,7 +321,7 @@ class MainView:
                 self.num_cols.set(cols)
                 self.num_rows.set(rows)
                 self.control_names.set(controls)
-                print(f"Loaded DZN: {rows}x{cols} plate, controls: {controls}")
+                logger.info(f"Loaded DZN: {rows}x{cols} plate, controls: {controls}")
                 logger.info(f"DZN file loaded successfully: {path}")
                 self._update_run_minizinc_button_state()
                 self._add_to_recent(path, is_dzn=True)
@@ -336,7 +336,7 @@ class MainView:
         import os
     
         model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
-        print(f"Running {model_name} model...")
+        logger.info(f"Running {model_name} model...")
         logger.info(f"Starting MiniZinc execution with {model_name} model")
     
         original_text = self.label_csv_loaded.cget("text")
@@ -388,9 +388,9 @@ class MainView:
         
             # Check if csv_path is valid (not -1 or -2 error codes, and not empty string)
             if csv_path and isinstance(csv_path, str) and csv_path not in ['', '-1', '-2']:
-                self._update_csv_path(csv_path)
+                self._refresh_recent_menus_path(csv_path)
                 self._add_to_recent(csv_path, is_dzn=False)
-                print(f"Layout exported successfully: {os.path.basename(csv_path)}")
+                logger.info(f"Layout exported successfully: {os.path.basename(csv_path)}")
                 logger.info(f"MiniZinc execution completed: {csv_path}")
             else:
                 self.label_csv_loaded.config(text=original_text)
@@ -411,11 +411,11 @@ class MainView:
         path = filedialog.askopenfilename(title='open csv file', filetypes=FileTypes.CSV_FILES)
         if path:
             try:
-                self._update_csv_path(path)
+                self._refresh_recent_menus_path(path)
                 self._add_to_recent(path, is_dzn=False)
                 with open(path, 'r') as f:
                     line_count = sum(1 for _ in f) - 1
-                print(f"Loaded CSV: {line_count} layout entries")
+                logger.info(f"Loaded CSV: {line_count} layout entries")
                 logger.info(f"CSV file loaded: {path}, {line_count} entries")
             except Exception as e:
                 logger.error(f"CSV loading failed: {path}, error: {e}")
@@ -495,7 +495,7 @@ class MainView:
             self._update_run_minizinc_button_state()
             self._add_to_recent(path, True)
         else:
-            self._update_csv_path(path)
+            self._refresh_recent_menus_path(path)
             self._add_to_recent(path, False)
     
     def _refresh_recent_menus(self) -> None:
@@ -530,8 +530,10 @@ class MainView:
             self._save_recents()
             self._refresh_recent_menus()
     
-    def _update_csv_path(self, path: str) -> None:
+    def _refresh_recent_menus_path(self, path: str) -> None:
         """Update CSV path and enable visualize button."""
+        if not path:
+            raise ValueError("CSV path cannot be empty")
         path_show(path, self.label_csv_loaded)
         self.csv_file_path.set(path)
         self.button_visualize.config(state=tk.NORMAL)
@@ -549,7 +551,7 @@ class MainView:
         path_show(file_path, self.label_dzn_loaded)
         self._add_to_recent(file_path, is_dzn=True)
         self._update_run_minizinc_button_state()
-        print(f"DZN integrated: {rows}x{cols} plate, controls: {controls}")
+        logger.info(f"DZN integrated: {rows}x{cols} plate, controls: {controls}")
         logger.info(f"DZN generation result integrated: {file_path}")
     
     def _set_program_state_to_default(self) -> None:
