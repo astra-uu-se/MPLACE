@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ from typing import Callable, List
 from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
 from controllers.csv_controller import CsvController
-from models.constants import PlateDefaults, UI, Messages, WindowConfig, FileTypes, PathsIni
+from models.constants import PlateDefaults, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
 from core.io_utils import path_show
 from ui.ui_validators import numeric_entry_callback
 
@@ -505,7 +505,7 @@ class MainView:
             self.menu_recent_dzn.add_command(label="(No recent DZN)", state=tk.DISABLED)
         else:
             for fpath in self.recent_dzn:
-                display = fpath if len(fpath) <= 80 else "..." + fpath[-80:]
+                display = fpath if len(fpath) <= Validation.RECENT_PATH_DISPLAY_MAX_LENGTH else "..." + fpath[-Validation.RECENT_PATH_DISPLAY_MAX_LENGTH:]
                 self.menu_recent_dzn.add_command(label=display, command=lambda p=fpath: self._open_recent_file(p, True))
             self.menu_recent_dzn.add_separator()
             self.menu_recent_dzn.add_command(label="Clear List", command=lambda: self._clear_recent(True))
@@ -515,7 +515,7 @@ class MainView:
             self.menu_recent_csv.add_command(label="(No recent CSV)", state=tk.DISABLED)
         else:
             for fpath in self.recent_csv:
-                display = fpath if len(fpath) <= 80 else "..." + fpath[-80:]
+                display = fpath if len(fpath) <= Validation.RECENT_PATH_DISPLAY_MAX_LENGTH else "..." + fpath[-Validation.RECENT_PATH_DISPLAY_MAX_LENGTH:]
                 self.menu_recent_csv.add_command(label=display, command=lambda p=fpath: self._open_recent_file(p, False))
             self.menu_recent_csv.add_separator()
             self.menu_recent_csv.add_command(label="Clear List", command=lambda: self._clear_recent(False))
