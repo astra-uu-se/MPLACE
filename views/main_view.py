@@ -18,7 +18,7 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
-# Last Revision: December 2025
+# Last Revision: January 2026
 #
 
 import tkinter as tk
