@@ -18,7 +18,7 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
-# Last Revision: December 2025
+# Last Revision: January 2026
 #
 
 import logging
@@ -85,14 +85,14 @@ class CsvController:
             logger.error(f"Failed to export PharmBio CSV: {e}")
             raise IOError(f"Could not write CSV file: {e}") from e
     
-    def export_plater(self, csvlines: List[str], rows: str, cols: str) -> List[str]:
+    def export_plater(self, csv_lines: List[str], rows: str, cols: str) -> List[str]:
         """Export in PLATER CSV format.
     
         PLATER format is a plate-shaped CSV used by the R package plater for reading,
         tidying, and visualizing microtiter plates. Creates one file per plate.
     
         Args:
-            csvlines: List of CSV lines in PharmBio format
+            csv_lines: List of CSV lines in PharmBio format
             rows: Number of plate rows
             cols: Number of plate columns
         
@@ -111,7 +111,7 @@ class CsvController:
         try:
             # Create conversion request
             conversion_input = CSVConversionRequest(
-                csv_lines=csvlines,
+                csv_lines=csv_lines,
                 rows=rows,
                 cols=cols
             )
