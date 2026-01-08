@@ -13,8 +13,11 @@
 # limitations under the License.
 #
 #
-# Description: Controller for CSV import/export operations.
-# Handles CSV file format conversions and exports.
+# Description: CSV import/export controller for MPLACE layout data.
+# Manages conversion and export between different CSV formats:
+# - PharmBio: Default MPLACE format for visualization and post-processing
+# - PLATER: Plate-shaped format compatible with R's plater package
+# Coordinates file selection and writing through native dialog interfaces.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2
@@ -30,11 +33,13 @@ logger = logging.getLogger(__name__)
 
 
 class CsvController:
-    """
-    Handles CSV import/export operations.
+    """CSV import/export controller for MPLACE layout data.
     
-    This controller manages different CSV formats (PharmBio, PLATER)
-    and handles file writing operations.
+    Manages conversion and export between different CSV formats:
+    - PharmBio: Default MPLACE format for visualization and post-processing
+    - PLATER: Plate-shaped format compatible with R's plater package
+    
+    Coordinates file selection and writing through native dialog interfaces.
     """
     
     def __init__(self):
@@ -81,9 +86,13 @@ class CsvController:
                 logger.info(f"PharmBio CSV saved to: {result}")
                 return result
             
-        except Exception as e:
+        except (IOError, OSError) as e:
             logger.error(f"Failed to export PharmBio CSV: {e}")
             raise IOError(f"Could not write CSV file: {e}") from e
+        except Exception as e:
+            logger.error(f"Unexpected error during export: {e}")
+            raise RuntimeError(f"Unexpected error: {e}") from e
+        
     
     def export_plater(self, csv_lines: List[str], rows: str, cols: str) -> List[str]:
         """Export in PLATER CSV format.
@@ -159,9 +168,12 @@ class CsvController:
         except ValueError as e:
             logger.error(f"PLATER conversion failed: {e}")
             raise
+        except (IOError, OSError) as e:
+            logger.error(f"Failed to write PLATER CSV file: {e}")
+            raise IOError(f"File write error: {e}") from e
         except Exception as e:
-            logger.error(f"Failed to export PLATER CSV: {e}")
-            raise IOError(f"Could not write PLATER files: {e}") from e
+            logger.error(f"Unexpected error during PLATER export: {e}")
+            raise RuntimeError(f"Unexpected error: {e}") from e
     
     def validate_csv_lines(self, csv_lines: List[str]) -> bool:
         """

@@ -24,7 +24,9 @@
 import logging
 import ast
 import numpy as np
+from matplotlib import pyplot as plt
 from typing import List, Dict, Any, Tuple
+
 from models.csv_data import VisualizationState
 from core.io_utils import read_csv_file
 from core.layout_utils import find_all_plates_concentrations
@@ -282,17 +284,17 @@ class VisualizationController:
     
     
     def _generate_colors(self, concentrations_list: Dict[str, List[Any]]) -> Dict[str, Any]:
-        """
-        Generate color mappings for materials.
+        """Generate color mappings for each material.
+        
+        Uses matplotlib's tab20 colormap, cycling through available colors
+        to ensure consistent material representation across all plates.
         
         Args:
-            concentrations_list: Dictionary of materials to concentrations
-            
-        Returns:
-            Dictionary mapping materials to colors
-        """
-        from matplotlib import pyplot as plt
+            concentrations_list: Dictionary mapping material names to concentration lists.
         
+        Returns:
+            Dictionary mapping material names to RGBA color values for visualization.
+        """
         material_colors = {}
         colormap = plt.get_cmap('tab20')
         num_colors = Performance.COLORMAP_COLOR_LIMIT
