@@ -98,7 +98,16 @@ class VisualizationController:
             except Exception as e:
                 logger.warning(f"Failed to parse control names, using empty list: {e}")
                 control_list = []
-        
+            
+            try:
+                rows_int = int(rows)
+                cols_int = int(cols)
+                if rows_int <= 0 or cols_int <= 0:
+                    raise ValueError("Plate dimensions must be positive integers")
+            except ValueError as e:
+                logger.error(f"Invalid plate dimensions: {e}")
+                raise ValueError(f"Invalid plate dimensions - rows: {rows}, cols: {cols}") from e
+            
             # Create visualization state
             state = VisualizationState(
                 file_path=csv_path,
@@ -132,7 +141,6 @@ class VisualizationController:
             num_rows: Number of rows in plate
             num_cols: Number of columns in plate
         """
-        import numpy as np
         from core.layout_utils import transform_index
     
         # Ensure consistent orientation (wider dimension is horizontal)
@@ -223,7 +231,6 @@ class VisualizationController:
                     alphas.append(alpha_values.get(well[2], 0.5))
         
             # Get color as array matching legacy
-            import numpy as np
             color = viz_state.material_colors.get(material, np.array([0.5, 0.5, 0.5]))
             colors = [color for _ in range(len(x_coords))]
         
@@ -242,9 +249,7 @@ class VisualizationController:
             ax: Matplotlib axes object
             material_name: Name of the material
             viz_state: Visualization state with concentration data
-        """
-        import numpy as np
-    
+        """    
         # Get data for this material
         alpha_mapping = viz_state.alpha_mappings.get(material_name, {})
         color = viz_state.material_colors.get(material_name, np.array([0.5, 0.5, 0.5]))

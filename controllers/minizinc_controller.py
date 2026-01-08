@@ -24,7 +24,7 @@
 import logging
 from typing import List
 from models.dto import AppConfig
-from core.minizinc_runner import run_model
+from core.minizinc_runner import run_model as run_minizinc_model
 from core.io_utils import extract_csv_text
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ class MiniZincController:
         logger.debug(f"Solver config: {solver_config}, DZN: {dzn_file}")
         
         try:
-            output = run_model(minizinc_path, solver_config, model_file, dzn_file)
+            output = run_minizinc_model(minizinc_path, solver_config, model_file, dzn_file)
             logger.info("MiniZinc execution completed successfully")
             return output
             
