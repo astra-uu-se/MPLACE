@@ -74,7 +74,7 @@ class MainView:
         self._setup_menu()
         self._load_recents()
         self._refresh_recent_menus()
-        self.reset_all()
+        self._set_program_state_to_default()
         
         logger.info("Main view initialized")
     
@@ -145,25 +145,7 @@ class MainView:
         self.button_run_minizinc.grid(row=1, column=0, columnspan=1, sticky="ew")
         self.button_load_csv.grid(row=1, column=1, columnspan=1, sticky="ew")
         self.label_csv_loaded.grid(row=2, column=0, columnspan=2, sticky="w")
-        
-        # Disable Run Model button if MiniZinc unavailable or no models available
-        if (self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER or 
-            (self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and 
-             self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER)):
-            self.button_run_minizinc.config(state=tk.DISABLED)
-            logger.warning("Run Model button disabled - MiniZinc or all models unavailable")
-        else:
-            self.button_run_minizinc.config(state=tk.NORMAL)
-        
-        # Disable radio buttons if corresponding model files are missing
-        if self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
-            self.radio_plaid.config(state=tk.DISABLED)
-            self.radio_compd.config(state=tk.DISABLED)
-        if self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER:
-            self.radio_plaid.config(state=tk.DISABLED)
-        if self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER:
-            self.radio_compd.config(state=tk.DISABLED)
-        
+               
         # Frame 3: Visualization
         self.frame_matplotlib = ttk.LabelFrame(self.root, text=Messages.FRAME_TITLE_VIZ)
         self.frame_matplotlib.pack(expand=True, fill="both", padx=UI.FRAME_PADDING, pady=UI.FRAME_PADDING)
@@ -182,9 +164,9 @@ class MainView:
             self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD, state=tk.DISABLED,
             text=Messages.BUTTON_VISUALIZE, command=self._on_visualize
         )
-        self.button_reset_all = ttk.Button(
+        self.button__set_program_state_to_default = ttk.Button(
             self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD,
-            text=Messages.BUTTON_RESET, command=self.reset_all
+            text=Messages.BUTTON_RESET, command=self._set_program_state_to_default
         )
         
         self.frame_matplotlib.columnconfigure(0, weight=UI.GRID_WEIGHT)
@@ -197,7 +179,82 @@ class MainView:
         self.label_cols.grid(row=0, column=2, columnspan=1, sticky="w")
         self.entry_cols.grid(row=0, column=3, columnspan=1, sticky="w")
         self.button_visualize.grid(row=1, column=0, columnspan=2, sticky="ew")
-        self.button_reset_all.grid(row=1, column=2, columnspan=2, sticky="ew")
+        self.button__set_program_state_to_default.grid(row=1, column=2, columnspan=2, sticky="ew")
+    
+    def _apply_config_defaults(self) -> None:
+        """
+        Apply configuration constraints based on available resources.
+
+        This method:
+        - Disables radio buttons for unavailable models
+        - Updates Run Model button state based on config
+        - Auto-selects a valid model if current selection is unavailable
+
+        Called from:
+        - __init__() during startup
+        - _set_program_state_to_default() to reapply after clearing state
+        """
+        logger.info("Applying config defaults")
+
+        # Determine what resources are available
+        minizinc_available = (
+            self.controller.app_config.minizinc_path != PathsIni.FILE_ERROR_PLACEHOLDER
+        )
+        plaid_available = (
+            self.controller.app_config.plaid_path != PathsIni.FILE_ERROR_PLACEHOLDER
+        )
+        compd_available = (
+            self.controller.app_config.compd_path != PathsIni.FILE_ERROR_PLACEHOLDER
+        )
+
+        # 1) Disable radio buttons based on availability
+        if not minizinc_available:
+            # If MiniZinc missing, both models are unavailable
+            self.radio_plaid.config(state=tk.DISABLED)
+            self.radio_compd.config(state=tk.DISABLED)
+            logger.warning("Both radio buttons disabled - MiniZinc unavailable")
+        else:
+            # MiniZinc available – disable individual models as needed
+            self.radio_plaid.config(
+                state=tk.NORMAL if plaid_available else tk.DISABLED
+            )
+            self.radio_compd.config(
+                state=tk.NORMAL if compd_available else tk.DISABLED
+            )
+
+            if not plaid_available:
+                logger.warning("PLAID radio button disabled - PLAID model unavailable")
+            if not compd_available:
+                logger.warning("COMPD radio button disabled - COMPD model unavailable")
+
+        # 2) Auto-select a valid model (based on config, not widget state)
+        current_selection = self.use_compd_flag.get()  # True/False boolean
+
+        # NOTE: in your code use_compd_flag is a BooleanVar, but UI.SELECT_PLAID /
+        # UI.SELECT_COMPD are probably booleans too; if they are ints/strings,
+        # adjust comparisons accordingly.
+
+        if current_selection == UI.SELECT_COMPD and not compd_available:
+            # COMPD selected but unavailable -> fall back to PLAID if possible
+            if plaid_available:
+                self.use_compd_flag.set(UI.SELECT_PLAID)
+                logger.info("Auto-selected PLAID model (COMPD unavailable)")
+            else:
+                # Neither model available; default to PLAID just for consistency
+                self.use_compd_flag.set(UI.SELECT_PLAID)
+                logger.warning("Neither PLAID nor COMPD available")
+
+        elif current_selection == UI.SELECT_PLAID and not plaid_available:
+            # PLAID selected but unavailable -> fall back to COMPD if possible
+            if compd_available:
+                self.use_compd_flag.set(UI.SELECT_COMPD)
+                logger.info("Auto-selected COMPD model (PLAID unavailable)")
+            else:
+                self.use_compd_flag.set(UI.SELECT_COMPD)
+                logger.warning("Neither PLAID nor COMPD available")
+
+        # 3) Update Run Model button state based on config
+        self._update_run_minizinc_button_state()
     
     def _setup_menu(self) -> None:
         """Setup menu bar with recent files."""
@@ -216,12 +273,42 @@ class MainView:
         logger.debug("Generate DZN button clicked")
         self.on_generate_dzn_clicked()
     
-    def _update_run_minizinc_button_state(self):
-        if not (self.controller.app_config.minizinc_path == PathsIni.FILE_ERROR_PLACEHOLDER or 
-                (self.controller.app_config.plaid_path == PathsIni.FILE_ERROR_PLACEHOLDER and 
-                 self.controller.app_config.compd_path == PathsIni.FILE_ERROR_PLACEHOLDER)):
-            self.button_run_minizinc.config(state=tk.NORMAL)
-        return
+    def _update_run_minizinc_button_state(self) -> None:
+        """
+        Update Run Model button state based on config constraints.
+
+        Button is ENABLED when:
+        - MiniZinc is available AND
+        - (PLAID OR COMPD is available)
+
+        Button is DISABLED when:
+        - MiniZinc is missing OR
+        - Both PLAID and COMPD are missing
+        """
+        # Check what resources are available
+        minizinc_available = (
+            self.controller.app_config.minizinc_path != PathsIni.FILE_ERROR_PLACEHOLDER
+        )
+        plaid_available = (
+            self.controller.app_config.plaid_path != PathsIni.FILE_ERROR_PLACEHOLDER
+        )
+        compd_available = (
+            self.controller.app_config.compd_path != PathsIni.FILE_ERROR_PLACEHOLDER
+        )
+
+        # Button enabled if MiniZinc present AND at least one model available
+        button_should_be_enabled = (
+            minizinc_available and (plaid_available or compd_available)
+        )
+
+        new_state = tk.NORMAL if button_should_be_enabled else tk.DISABLED
+        self.button_run_minizinc.config(state=new_state)
+
+        if button_should_be_enabled:
+            logger.debug("Run Model button enabled - config valid")
+        else:
+            logger.debug("Run Model button disabled - invalid config")
+    
     
     def _on_load_dzn(self) -> None:
         """Handle Load DZN button click."""
@@ -241,47 +328,6 @@ class MainView:
             except Exception as e:
                 logger.error(f"DZN loading failed: {path}, error: {e}")
                 messagebox.showerror("Error", f"Failed to load DZN file: {str(e)}")
-    
-    def _on_run_minizinc(self) -> None:
-        """Handle Run Model button click."""
-        model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
-        print(f"Running {model_name} model...")
-        logger.info(f"Starting MiniZinc execution with {model_name} model")
-    
-        original_text = self.label_csv_loaded.cget("text")
-        self.label_csv_loaded.config(text='Running the model...')
-        self.root.update_idletasks()
-    
-        try:
-            dzn_path = self.dzn_file_path.get()
-            use_compd = self.use_compd_flag.get()
-        
-            # Run model through MiniZincController
-            if use_compd:
-                output = self.minizinc_controller.run_compd_model(dzn_path)
-            else:
-                output = self.minizinc_controller.run_plaid_model(dzn_path)
-        
-            # Extract CSV from output
-            csv_lines = self.minizinc_controller.extract_csv_from_output(output)
-        
-            # Ask user for CSV format and save
-            csv_path = self._save_csv_with_format_choice(csv_lines)
-        
-            if csv_path:
-                self._update_csv_path(csv_path)
-                self._add_to_recent(csv_path, is_dzn=False)
-                print(f"Layout exported successfully: {os.path.basename(csv_path)}")
-                logger.info(f"MiniZinc execution completed: {csv_path}")
-            else:
-                self.label_csv_loaded.config(text=original_text)
-                logger.info("User cancelled CSV save")
-            
-        except Exception as e:
-            self.label_csv_loaded.config(text='MiniZinc execution failed')
-            logger.error(f"MiniZinc execution failed: {e}")
-            messagebox.showerror("Model Execution Error", 
-                               f"Failed to run {model_name} model.\n\n{str(e)}")
                                
     def _on_run_minizinc(self) -> None:
         """Handle Run Model button click."""
@@ -506,25 +552,29 @@ class MainView:
         print(f"DZN integrated: {rows}x{cols} plate, controls: {controls}")
         logger.info(f"DZN generation result integrated: {file_path}")
     
-    def reset_all(self) -> None:
+    def _set_program_state_to_default(self) -> None:
         """Reset all form fields to defaults."""
+        # Clear loaded files
         self.dzn_file_path.set('')
         self.csv_file_path.set('')
+        
+        # Reset parameters to defaults
         self.num_rows.set(PlateDefaults.ROWS)
         self.num_cols.set(PlateDefaults.COLS)
         self.control_names.set(PlateDefaults.CONTROL_NAMES)
-        self.use_compd_flag.set(UI.SELECT_PLAID)
+        
+        # Reset UI labels
         self.label_dzn_loaded.config(text=Messages.NO_DZN_LOADED)
         self.label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
-        self.button_run_minizinc.config(state=tk.DISABLED)
+        
+        # Disable visualization button (no CSV loaded)
         self.button_visualize.config(state=tk.DISABLED)
-        if str(self.radio_plaid.cget('state')) == tk.NORMAL:
-            self.use_compd_flag.set(UI.SELECT_PLAID)
-        elif str(self.radio_plaid.cget('state')) == tk.DISABLED and str(self.radio_compd.cget('state')) == tk.NORMAL:
-            self.use_compd_flag.set(UI.SELECT_COMPD)
-        else:
-            self.use_compd_flag.set(UI.SELECT_PLAID)
+        
+        # Reapply config constraints (radio states + Run button state)
+        self._apply_config_defaults()
+        
         logger.info("Application state reset to defaults")
+    
     
     def show(self) -> None:
         """Show main window and start event loop."""
