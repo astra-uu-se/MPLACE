@@ -17,7 +17,7 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.1
+# Version: 1.2.2
 # Last Revision: January 2026
 #
 
@@ -119,13 +119,12 @@ class VisualizationController:
                 figure_name_template=template,
                 num_rows=rows_int,
                 num_cols=cols_int,
-                control_names=control_list
+                control_names=control_list,
+                plates = layouts_dict,
+                concentrations = concentrations_list,
+                alpha_mappings = alpha_mappings,
+                material_colors = material_colors
             )
-        
-            state.plates = layouts_dict
-            state.concentrations = concentrations_list
-            state.alpha_mappings = alpha_mappings
-            state.material_colors = material_colors
         
             logger.info("Visualization state prepared successfully")
             return state

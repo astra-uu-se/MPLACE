@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
+# Version: 1.2.2
 # Last Revision: January 2026
 #
 
@@ -29,7 +29,7 @@ import tkinter as tk
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_pdf import PdfPages
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 
 from core.layout_utils import transform_index, transform_coordinate, find_all_plates_concentrations
 from models.constants import Performance, Alphabet, Validation, PathsIni, Visualization, FileTypes, PlaterFormat, FigureProperties
@@ -39,7 +39,7 @@ from models.dto import CSVConversionRequest
 logger = logging.getLogger(__name__)
 
 
-def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', material_scales: List[Figure] = []) -> Union[int,str]:
+def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', material_scales: Optional[List[Figure]] = None) -> Union[int,str]:
     """Write figures with optional filename suggestion.
     
     Args:
@@ -60,8 +60,11 @@ def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', m
     if path is None or path == '':
         return -1  # User cancelled
     
+    if material_scales is None:
+            material_scales = []
+    
     try:
-        if path[-3:] == 'pdf':
+        if path and path.lower().endswith('.pdf'):
             with PdfPages(path) as pdf:
                 pdf.savefig(figure, dpi=FigureProperties.DPI, bbox_inches='tight')
                 for fig in material_scales:
@@ -220,7 +223,7 @@ def convert_to_pharmbio_format(layout_text_array: List[str]) -> List[str]:
         except Exception as e:
             logger.error(f"File could not be read in Plater format, error: {e}")
             tk.messagebox.showerror("Error", f"Failed to load CSV file (Plater format): {str(e)}")
-            return
+            raise ValueError(f"CSV file format unrecognized: {e}") from e
         
 def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, List[str],List[str]]:
     """Scans the CSV file (Plater format) and extracts the layout information about the placement
@@ -431,7 +434,7 @@ def convert_pharmbio_to_plater_plate(input_data: CSVConversionRequest) -> str:
     return text    
 
 
-def plater_matrix_to_string(matrix):
+def plater_matrix_to_string(matrix: List[List[str]]) -> str:
     """Convert plater matrix into a string to write
     """
     text: str = ''
