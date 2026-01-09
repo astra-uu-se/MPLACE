@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
+# Version: 1.2.1
 # Last Revision: January 2026
 #
 
@@ -33,7 +33,7 @@ from controllers.viz_controller import VisualizationController
 from controllers.csv_controller import CsvController
 from models.csv_data import VisualizationState
 from models.constants import (
-    Visualization, UI, WindowConfig, Messages, FileTypes
+    Visualization, UI, WindowConfig, Messages, FileTypes, FigureProperties
 )
 from core.io_utils import write_figure, write_figures_in_pdf, path_truncate
 from ui.layout_format_dialog import ask_layout_export_format
@@ -202,7 +202,7 @@ class VizView:
             plate_data: Plate layout data
             viz_state: Visualization state
         """
-        fig = Figure()
+        fig = Figure(dpi=FigureProperties.DPI_DISPLAY)
         
         try:
             ax = fig.add_subplot(111)
@@ -229,7 +229,12 @@ class VizView:
             tab = ttk.Frame(parent)
             canvas = FigureCanvasTkAgg(fig, master=tab)
             canvas.draw()
-            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            
+            # CONSTRAIN the canvas widget size
+            canvas_widget = canvas.get_tk_widget()
+            canvas_widget.config(width=Visualization.PLATE_CANVAS_WIDTH, height=Visualization.PLATE_CANVAS_HEIGHT)
+
+            canvas_widget.pack(fill=tk.BOTH, expand=True)
             parent.add(tab, text=plate_id)
             
             # Store canvas reference for cleanup
@@ -294,7 +299,8 @@ class VizView:
             viz_state: Visualization state
         """
         fig = Figure(
-            figsize=(Visualization.SCALE_FIGURE_WIDTH, Visualization.SCALE_FIGURE_HEIGHT)
+            figsize=(Visualization.SCALE_FIGURE_WIDTH, Visualization.SCALE_FIGURE_HEIGHT),
+            dpi=FigureProperties.DPI_DISPLAY
         )
         
         try:
@@ -313,8 +319,16 @@ class VizView:
             # Create canvas
             tab = ttk.Frame(parent)
             canvas = FigureCanvasTkAgg(fig, master=tab)
+            
+            current_size = fig.get_size_inches()
+            fig.set_size_inches(current_size * (100 / FigureProperties.DPI))  # Scale down
+            
             canvas.draw()
-            canvas.get_tk_widget().pack(fill="both", expand=True)
+            
+            canvas_widget = canvas.get_tk_widget()
+            canvas_widget.config(width=Visualization.SCALE_CANVAS_WIDTH, height=Visualization.SCALE_CANVAS_HEIGHT)
+            
+            canvas_widget.pack(fill='both', expand=True)
             tab.pack(fill="both", expand=True, padx=UI.WIDGET_SPACING, pady=UI.WIDGET_SPACING_LARGE)
             
             # Store canvas reference

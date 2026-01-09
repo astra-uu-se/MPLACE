@@ -17,7 +17,7 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
+# Version: 1.2.1
 # Last Revision: January 2026
 #
 
@@ -31,7 +31,7 @@ from models.csv_data import VisualizationState
 from core.io_utils import read_csv_file
 from core.layout_utils import find_all_plates_concentrations
 from core.layout_utils import transform_concentrations_to_alphas
-from models.constants import Visualization, Performance
+from models.constants import Visualization, Performance, FigureProperties
 
 logger = logging.getLogger(__name__)
 
@@ -161,11 +161,11 @@ class VisualizationController:
         ax.set_aspect('equal')
     
         if is_switched:
-            ax.set_xticks(np.arange(0.5, num_rows, 1), labels=[str(i + 1) for i in range(num_rows)], minor=True)
-            ax.set_yticks(np.arange(0.5, num_cols, 1), labels=[transform_index(i) for i in range(num_cols)], minor=True)
+            ax.set_xticks(np.arange(0.5, num_rows, 1), labels=[str(i + 1) for i in range(num_rows)], minor=True, fontsize = 8/FigureProperties.DPI_RATIO)
+            ax.set_yticks(np.arange(0.5, num_cols, 1), labels=[transform_index(i) for i in range(num_cols)], minor=True, fontsize = 8/FigureProperties.DPI_RATIO)
         else:
-            ax.set_xticks(np.arange(0.5, num_rows, 1), labels=[transform_index(i) for i in range(num_rows)], minor=True)
-            ax.set_yticks(np.arange(0.5, num_cols, 1), labels=[str(i + 1) for i in range(num_cols)], minor=True)
+            ax.set_xticks(np.arange(0.5, num_rows, 1), labels=[transform_index(i) for i in range(num_rows)], minor=True, fontsize = 8/FigureProperties.DPI_RATIO)
+            ax.set_yticks(np.arange(0.5, num_cols, 1), labels=[str(i + 1) for i in range(num_cols)], minor=True, fontsize = 8/FigureProperties.DPI_RATIO)
     
         ax.tick_params(axis='both', which='minor', length=0)  # Hide minor tick marks
         ax.set_xlim(0, num_rows)
@@ -239,7 +239,7 @@ class VisualizationController:
                     num_rows,
                     num_cols
                 )
-                sizes.append(size)
+                sizes.append(size / FigureProperties.DPI_RATIO)
         
             # Get color for this material
             color = viz_state.material_colors.get(material, np.array([0.5, 0.5, 0.5]))
@@ -249,7 +249,7 @@ class VisualizationController:
                 x_coords,
                 y_coords,
                 marker=marker,
-                linewidths=0.5,
+                linewidths=0.5/FigureProperties.DPI_RATIO,
                 c=[color],
                 s=sizes,
                 edgecolor='black',
@@ -299,7 +299,7 @@ class VisualizationController:
             normalized = conc_numeric / max_conc if max_conc > 0 else 0.5
             # Scale to marker sizes maintaining proportions
             size = Visualization.CONCENTRATION_SIZE_MIN + (normalized * (Visualization.CONCENTRATION_SIZE_MAX - Visualization.CONCENTRATION_SIZE_MIN))
-            relative_sizes.append(size)
+            relative_sizes.append(size / FigureProperties.DPI_RATIO)
         
         # Create scatter plot showing size gradient with consistent proportions
         if num_conc == 1:
@@ -314,7 +314,7 @@ class VisualizationController:
             x_positions,
             y_positions,
             marker=marker,
-            linewidths=0.5,
+            linewidths=0.5 / FigureProperties.DPI_RATIO,
             s=relative_sizes,
             c=[color],
             edgecolor='black',
@@ -323,10 +323,10 @@ class VisualizationController:
         ax.set_aspect('equal')
         
         # Set title and labels
-        ax.set_title(material_name, fontsize=9, fontweight='bold', pad=2)
+        ax.set_title(material_name, fontsize=9/FigureProperties.DPI_RATIO, fontweight='bold', pad=2/FigureProperties.DPI_RATIO)
         ax.set_xticks(x_positions)
-        ax.set_xticklabels([str(c) for c in concentrations], fontsize=6)
-        ax.set_xlabel('Concentrations', fontsize=8)
+        ax.set_xticklabels([str(c) for c in concentrations], fontsize=6/FigureProperties.DPI_RATIO)
+        ax.set_xlabel('Concentrations', fontsize=8/FigureProperties.DPI_RATIO)
         ax.set_yticks([])
         
         ax.set_ylim(0.45, 0.55)

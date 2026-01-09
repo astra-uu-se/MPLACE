@@ -16,7 +16,7 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
+# Version: 1.2.1
 # Last Revision: January 2026
 #
 
@@ -86,8 +86,10 @@ class Alphabet:
 class Visualization:
     """Constants for visualization components."""
     # Panel dimensions
+    PLATE_CANVAS_WIDTH = 800
+    PLATE_CANVAS_HEIGHT = 600
     MATERIAL_PANEL_WIDTH = 400
-    MATERIAL_PANEL_HEIGHT = 500
+    MATERIAL_PANEL_HEIGHT = 600
     
     # Plot settings
     WELL_COORDINATE_OFFSET = 0.5
@@ -104,6 +106,10 @@ class Visualization:
     CONCENTRATION_SIZE_MIN = 20
     CONCENTRATION_SIZE_MAX = 100
     USE_SIZE_ENCODING = True
+    
+    # Add explicit canvas display sizes (in pixels)
+    SCALE_CANVAS_WIDTH = 400   # Constrain scale canvas width  
+    SCALE_CANVAS_HEIGHT = 117  # Constrain scale canvas height
 
 
 class Performance:
@@ -217,7 +223,10 @@ class PlaterFormat:
     CONCENTRATIONS_LABEL = "Concentration"
 
 class FigureProperties:
-    DPI = 600
+    DPI = 300
+    DPI_DISPLAY = 150 # Reference DPI (what sizes were originally designed for)
+    DPI_MPL_DEFAULT = 100
+    DPI_RATIO = DPI_DISPLAY / DPI_MPL_DEFAULT
 
 class Validation:
     """Input validation constants."""
