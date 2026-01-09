@@ -165,7 +165,7 @@ def is_executable(path_str: str) -> bool:
         if os.name == 'nt':
             return path_obj.suffix.lower() in ['.exe', '.bat', '.cmd'] or os.access(path_obj, os.X_OK)
         elif not os.access(path_obj, os.R_OK):
-            return errors + [f"{path_str} exists but is not readable'"]
+            return False
         else:
             return os.access(path_obj, os.X_OK)
     except (OSError, ValueError):

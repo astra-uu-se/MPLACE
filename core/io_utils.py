@@ -81,7 +81,7 @@ def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', m
         logger.error(f"Failed to write {path[:-3]} file: {e}")
         return -2  # Write error
 
-def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', material_scales: List[Figure] = []) -> Union[int,str]:
+def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', material_scales: Optional[List[Figure]] = None) -> Union[int,str]:
     """Write several layouts in a single pdf with optional filename suggestion.
     
     Args:
@@ -101,6 +101,9 @@ def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', ma
     
     if path is None or path == '':
         return -1  # User cancelled
+    
+    if material_scales is None:
+            material_scales = []
     
     try:
         # write the text here
