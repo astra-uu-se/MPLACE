@@ -176,13 +176,17 @@ class VisualizationController:
 
 
     def plot_plate_wells(self, ax, plate_data: List, viz_state: VisualizationState) -> None:
-        """
-        Plot all wells on a plate matching legacy code exactly.
-    
+        """Plot all wells on a plate with concentration encoded as marker size.
+        
+        Each well is displayed with:
+        - Color: Material identity (60 distinct colors available)
+        - Size: Concentration level (small to large)
+        - Marker shape: Controls (circles) vs materials (squares)
+        
         Args:
             ax: Matplotlib axes object
             plate_data: List of CSV rows [well_coord, material, concentration]
-            viz_state: Visualization state with color/alpha mappings
+            viz_state: Visualization state with color and concentration mappings
         """
         from models.constants import Visualization
         from core.layout_utils import transform_coordinate, to_number_if_possible
@@ -209,17 +213,14 @@ class VisualizationController:
         # Plot each material
         for material in materials:
             # Use circles for controls, squares for other materials
-            if material in viz_state.control_names:
-                marker = 'o'
-            else:
-                marker = 's'
+            marker = self._select_marker(material, viz_state)
         
-            # Use precomputed alpha values
-            alpha_values = viz_state.alpha_mappings.get(material, {})
+            # Get concentration mapping for this material
+            alpha_mapping = viz_state.alpha_mappings.get(material, {})
         
             x_coords: List[float] = []
             y_coords: List[float] = []
-            alphas: List[float] = []
+            sizes: List[float] = []
         
             for well in materials[material]:
                 if is_switched:
@@ -230,29 +231,49 @@ class VisualizationController:
                 x_coords.append(x_coord + Visualization.WELL_COORDINATE_OFFSET)
                 y_coords.append(y_coord + Visualization.WELL_COORDINATE_OFFSET)
             
-                try:
-                    alphas.append(alpha_values[to_number_if_possible(well[2])])
-                except (KeyError, IndexError):
-                    alphas.append(alpha_values.get(well[2], 0.5))
+                # Map concentration to size
+                concentration = well[2]
+                size = self._concentration_to_size(
+                    concentration,
+                    alpha_mapping,
+                    num_rows,
+                    num_cols
+                )
+                sizes.append(size)
         
-            # Get color as array matching legacy
+            # Get color for this material
             color = viz_state.material_colors.get(material, np.array([0.5, 0.5, 0.5]))
-            colors = [color for _ in range(len(x_coords))]
         
-            ax.scatter(x_coords, y_coords, marker=marker, c=colors, 
-                      s=Visualization.SCATTER_MARKER_SIZE,
-                      edgecolor='black', alpha=alphas)
+            # Plot wells with size encoding (no alpha variation)
+            ax.scatter(
+                x_coords,
+                y_coords,
+                marker=marker,
+                linewidths=0.5,
+                c=[color],
+                s=sizes,
+                edgecolor='black',
+                alpha=1.0
+            )
     
-        logger.debug(f"Plotted {len(plate_data)} wells grouped into {len(materials)} materials")
+        logger.debug(f"Plotted {len(plate_data)} wells grouped into {len(materials)} materials "
+                    f"with size encoding for concentration")
 
 
-    def create_material_scale(self, ax, material_name: str, viz_state: VisualizationState) -> None:
-        """
-        Create concentration scale legend for a material matching legacy code exactly.
+    def create_material_scale(
+        self,
+        ax,
+        material_name: str,
+        viz_state: VisualizationState
+    ) -> None:
+        """Create concentration scale legend showing size encoding.
+        
+        Creates a visual representation of how concentration maps to marker size
+        for a specific material.
     
         Args:
-            ax: Matplotlib axes object
-            material_name: Name of the material
+            ax: Matplotlib axes object for the legend
+            material_name: Name of the material to show scale for
             viz_state: Visualization state with concentration data
         """    
         # Get data for this material
@@ -260,33 +281,135 @@ class VisualizationController:
         color = viz_state.material_colors.get(material_name, np.array([0.5, 0.5, 0.5]))
     
         if not alpha_mapping:
+            logger.warning(f"No concentration data for material {material_name}")
             return
     
-        # Use precomputed alpha values
-        alphas = [alpha_mapping[x] for x in alpha_mapping]
+        # Get sorted concentrations
+        concentrations = sorted(alpha_mapping.keys())
+        num_conc = len(concentrations)
+        
+        # Calculate relative sizes based on concentration ratios
+        # All sizes are relative to max, then scaled by SIZE_MAX for consistency
+        relative_sizes = []
+        max_conc = max(float(k) if isinstance(k, str) else k for k in alpha_mapping.keys())
+        
+        for conc in concentrations:
+            conc_numeric = float(conc) if isinstance(conc, str) else conc
+            # Normalize to [0, 1] range
+            normalized = conc_numeric / max_conc if max_conc > 0 else 0.5
+            # Scale to marker sizes maintaining proportions
+            size = Visualization.CONCENTRATION_SIZE_MIN + (normalized * (Visualization.CONCENTRATION_SIZE_MAX - Visualization.CONCENTRATION_SIZE_MIN))
+            relative_sizes.append(size)
+        
+        # Create scatter plot showing size gradient with consistent proportions
+        if num_conc == 1:
+            x_positions = np.arange(1) + 0.5
+        else:
+            x_positions = np.arange(start = 0.1, stop = 0.90001, step = 0.8 / (num_conc - 1))
+        y_positions = np.ones(num_conc) * 0.5
+        
+        marker = self._select_marker(material_name, viz_state)
+        
+        ax.scatter(
+            x_positions,
+            y_positions,
+            marker=marker,
+            linewidths=0.5,
+            s=relative_sizes,
+            c=[color],
+            edgecolor='black',
+            alpha=1.0
+        )
+        ax.set_aspect('equal')
+        
+        # Set title and labels
+        ax.set_title(material_name, fontsize=9, fontweight='bold', pad=2)
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels([str(c) for c in concentrations], fontsize=6)
+        ax.set_xlabel('Concentrations', fontsize=8)
+        ax.set_yticks([])
+        
+        ax.set_ylim(0.45, 0.55)
+        ax.set_xlim(0, 1)
+        ax.grid(axis='x', alpha=0.3)
+        
+        logger.debug(f"Created size-encoding scale for {material_name} with {num_conc} concentrations")
+
     
-        rgba_colors = np.zeros((1, len(alpha_mapping), 4))
-        rgba_colors[:, :, 0] = color[0]
-        rgba_colors[:, :, 1] = color[1]
-        rgba_colors[:, :, 2] = color[2]
-        rgba_colors[:, :, 3] = alphas  # Set alpha channel
+    def _concentration_to_size(
+        self,
+        concentration: Any,
+        alpha_mapping: Dict[Any, float],
+        plate_num_rows: int,
+        plate_num_cols: int
+    ) -> float:
+        """Convert concentration value to marker size.
+        
+        Maps concentration values to marker sizes in range [SIZE_MIN, SIZE_MAX].
+        Uses the precomputed alpha mapping to determine the concentration range.
+        
+        Args:
+            concentration: Concentration value (numeric or string)
+            alpha_mapping: Dictionary mapping concentrations to alpha values
+            plate_num_rows: Number of rows in plate (for context)
+            plate_num_cols: Number of columns in plate (for context)
+        
+        Returns:
+            Marker size for scatter plot (typically 50-400)
+        """
+        from core.layout_utils import to_number_if_possible
+        
+        # Get size range from constants
+        size_min = Visualization.CONCENTRATION_SIZE_MIN
+        size_max = Visualization.CONCENTRATION_SIZE_MAX
+        
+        # Handle empty mapping
+        if not alpha_mapping:
+            return (size_min + size_max) / 2
+        
+        try:
+            # Try to convert concentration to number
+            conc_numeric = to_number_if_possible(concentration)
+            
+            # Find max concentration in mapping
+            max_conc = max(float(k) if isinstance(k, str) else k for k in alpha_mapping.keys())
+            
+            # Handle zero max concentration
+            if max_conc <= 0:
+                return (size_min + size_max) / 2
+            
+            # Normalize concentration to [0, 1]
+            normalized = float(conc_numeric) / float(max_conc)
+            
+            # Clamp to valid range
+            normalized = max(0.0, min(1.0, normalized))
+            
+        except (ValueError, TypeError, KeyError):
+            # If conversion fails, use middle size
+            logger.debug(f"Could not map concentration {concentration} to size, using default")
+            return (size_min + size_max) / 2
+        
+        # Scale to size range
+        size = size_min + (normalized * (size_max - size_min))
+        
+        return size
     
-        ax.imshow(rgba_colors, extent=[0, len(alpha_mapping), 0, 1], aspect='auto')
-        ax.set_title(material_name)
-    
-        x_ticks = np.linspace(0, len(alpha_mapping), len(alpha_mapping))
-        x_labels = [str(i) for i in alpha_mapping]
-        ax.set_xticks(x_ticks)
-        ax.set_xticklabels(x_labels)
-        ax.set_yticks([])  # Hide y-axis ticks
-    
-        logger.debug(f"Created scale for {material_name} with {len(alpha_mapping)} concentrations")
-    
+    def _select_marker(self, 
+                       material_name: str,
+                       viz_state: VisualizationState
+                       ) -> str:
+        """Marker selection based on the material.
+           Use circles for controls, squares for other materials
+        """
+        if material_name in viz_state.control_names:
+            return 'o'
+        else:
+            return 's'
     
     def _generate_colors(self, concentrations_list: Dict[str, List[Any]]) -> Dict[str, Any]:
         """Generate color mappings for each material.
         
-        Uses matplotlib's tab20 colormap, cycling through available colors
+        Uses matplotlib's tab20 colormaps, cycling through available colors
         to ensure consistent material representation across all plates.
         
         Args:
@@ -296,12 +419,21 @@ class VisualizationController:
             Dictionary mapping material names to RGBA color values for visualization.
         """
         material_colors = {}
-        colormap = plt.get_cmap('tab20')
+        
+        # Get the three tab20 variant colormaps
+        colormaps = [
+                plt.get_cmap('tab20'),   # Materials 0-19
+                plt.get_cmap('tab20b'),  # Materials 20-39
+                plt.get_cmap('tab20c')   # Materials 40-59
+            ]
         num_colors = Performance.COLORMAP_COLOR_LIMIT
         
         for idx, material in enumerate(concentrations_list.keys()):
-            color_idx = idx % num_colors
+            map_idx = (idx // num_colors) % len(colormaps)
+            colormap = colormaps[map_idx]
+            color_idx = idx % num_colors 
             material_colors[material] = colormap(color_idx)
         
-        logger.debug(f"Generated colors for {len(material_colors)} materials")
+        logger.debug(f"Generated colors for {len(concentrations_list)} materials using "
+                    f"{min(3, (len(concentrations_list) + num_colors - 1) // num_colors)} extended tab20 colormaps")
         return material_colors

@@ -91,15 +91,19 @@ class Visualization:
     
     # Plot settings
     WELL_COORDINATE_OFFSET = 0.5
-    SCATTER_MARKER_SIZE = 80
     
     # Figure dimensions
     SCALE_FIGURE_WIDTH = 4
-    SCALE_FIGURE_HEIGHT = 2
+    SCALE_FIGURE_HEIGHT = 1
     
     # Alpha transparency range
     ALPHA_MIN = 0.3
     ALPHA_MAX = 1.0
+    
+    # Concentration markers range
+    CONCENTRATION_SIZE_MIN = 20
+    CONCENTRATION_SIZE_MAX = 100
+    USE_SIZE_ENCODING = True
 
 
 class Performance:
@@ -213,7 +217,7 @@ class PlaterFormat:
     CONCENTRATIONS_LABEL = "Concentration"
 
 class FigureProperties:
-    DPI = 300
+    DPI = 600
 
 class Validation:
     """Input validation constants."""
