@@ -87,9 +87,9 @@ class Visualization:
     """Constants for visualization components."""
     # Panel dimensions
     PLATE_CANVAS_WIDTH = 800
-    PLATE_CANVAS_HEIGHT = 600
+    PLATE_CANVAS_HEIGHT = 500
     MATERIAL_PANEL_WIDTH = 400
-    MATERIAL_PANEL_HEIGHT = 600
+    MATERIAL_PANEL_HEIGHT = 500
     
     # Plot settings
     WELL_COORDINATE_OFFSET = 0.5
