@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to visualization of layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.2.2
+# Last Revision: January 2026
 #
 
 import logging
@@ -60,6 +60,9 @@ def transform_coordinate(well: str) -> List[int]:
             col = int(well[i:]) - 1
             logger.debug(f"Coordinate transform: {well} -> [{row}, {col}]")
             return [row, col]
+    error_msg = f'Coordinates {well} can not be transformed.'
+    logger.debug(error_msg)
+    raise ValueError(error_msg)
 
 
 @lru_cache(maxsize=Performance.COORDINATE_CACHE_SIZE)

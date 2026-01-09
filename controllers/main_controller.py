@@ -17,7 +17,7 @@
 # Orchestrates main window operations and coordinates other controllers.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.1
+# Version: 1.2.2
 # Last Revision: January 2026
 #
 
@@ -71,44 +71,6 @@ class MainController:
         self.viz_controller = VisualizationController()
         
         logger.info("MainController initialized")
-    
-    def load_dzn_file(self, path: str) -> None:
-        """
-        Load DZN file and update application state.
-        
-        This scans the DZN file to extract plate dimensions and control names,
-        then updates the application state accordingly.
-        
-        Args:
-            path: Path to DZN file to load
-            
-        Raises:
-            FileNotFoundError: If DZN file doesn't exist
-            ValueError: If DZN file format is invalid
-        """
-        logger.info(f"Loading DZN file: {path}")
-        
-        try:
-            # Scan DZN file for metadata
-            cols, rows, controls = scan_dzn(path)
-            
-            # Update state
-            self.state.dzn_file_path = path
-            self.state.num_cols = cols
-            self.state.num_rows = rows
-            self.state.control_names = controls
-            
-            # Add to recent files
-            self.state.add_recent_dzn(path)
-            
-            logger.info(f"DZN loaded successfully: {rows}x{cols} plate with controls {controls}")
-            
-        except FileNotFoundError as e:
-            logger.error(f"DZN file not found: {path}")
-            raise FileNotFoundError(f"Could not find DZN file: {path}") from e
-        except Exception as e:
-            logger.error(f"Failed to load DZN file: {e}")
-            raise ValueError(f"Invalid DZN file format: {e}") from e
     
     def parse_dzn_file(self, path: str) -> Tuple[str, str, str]:
         """

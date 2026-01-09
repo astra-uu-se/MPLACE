@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to reading the config file
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.1
-# Last Revision: November 2025
+# Version: 1.2.2
+# Last Revision: January 2026
 #
 
 
@@ -62,11 +62,17 @@ def load_config() -> AppConfig:
             pass
         else:
             try:
-                [left_side, right_side] = line_clean.split('=')
+                parts = line_clean.split('=')
+                if len(parts) != 2:
+                    raise ValueError(f"Expected 'key = value', got: {line_clean}")
+    
+                left_side, right_side = parts
                 left_side = left_side.strip()
                 right_side = right_side.strip()
-            except:
-                raise ValueError(line_clean)
+    
+            except ValueError as e:
+                logger.error(f"Failed to parse config line: {line_clean}")
+                raise ValueError(f"Invalid configuration: {line_clean}") from e
             
             if left_side == PathsIni.MINIZINC_PREFIX:
                 minizinc_path = right_side.strip()[1:-1]
@@ -93,7 +99,6 @@ def load_config() -> AppConfig:
     elif not is_executable(minizinc_path):
         validation_errors.append(f"MiniZinc path exists but is not executable: '{minizinc_path}'")
         minizinc_path = PathsIni.FILE_ERROR_PLACEHOLDER
-    print(validation_errors)
     
     # Validate model and config files (must exist and be readable)
     validation_errors, plaid_path = file_check(validation_errors, "PLAID model file", plaid_path)
@@ -113,6 +118,7 @@ def load_config() -> AppConfig:
             "  • Check that all .mzn and .mpc files exist\n"
             "  • Verify file permissions are readable"
         )
+        logger.warning(error_msg)
         
     app_config = AppConfig(minizinc_path= minizinc_path,
                            plaid_path = plaid_path,
@@ -158,6 +164,8 @@ def is_executable(path_str: str) -> bool:
         # On Windows, check if it's a .exe file or has executable permission
         if os.name == 'nt':
             return path_obj.suffix.lower() in ['.exe', '.bat', '.cmd'] or os.access(path_obj, os.X_OK)
+        elif not os.access(path_obj, os.R_OK):
+            return errors + [f"{path_str} exists but is not readable'"]
         else:
             return os.access(path_obj, os.X_OK)
     except (OSError, ValueError):
