@@ -424,6 +424,9 @@ class MainView:
     def _on_visualize(self) -> None:
         """Handle Visualize button click."""
         logger.debug("Visualize button clicked")
+        self.controller.state.num_rows = self.num_rows.get()
+        self.controller.state.num_cols = self.num_cols.get()
+        self.controller.state.control_names = self.control_names.get()
         self.on_visualize_clicked()
     
     def _on_close(self) -> None:
