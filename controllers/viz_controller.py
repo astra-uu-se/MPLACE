@@ -23,9 +23,10 @@
 
 import logging
 import ast
+import math
 import numpy as np
 from matplotlib import pyplot as plt
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 
 from models.csv_data import VisualizationState
 from core.io_utils import read_csv_file
@@ -47,6 +48,10 @@ class VisualizationController:
     def __init__(self):
         """Initialize visualization controller."""
         logger.info("VisualizationController initialized")
+        
+        # Assert bounds
+        assert Visualization.CONCENTRATION_SIZE_MIN < Visualization.CONCENTRATION_SIZE_MAX
+        assert FigureProperties.DPI > 0
     
     def prepare_visualization(
         self,
@@ -278,6 +283,9 @@ class VisualizationController:
         # Get data for this material
         alpha_mapping = viz_state.alpha_mappings.get(material_name, {})
         color = viz_state.material_colors.get(material_name, np.array([0.5, 0.5, 0.5]))
+        
+        num_rows = viz_state.num_rows
+        num_cols = viz_state.num_cols
     
         if not alpha_mapping:
             logger.warning(f"No concentration data for material {material_name}")
@@ -289,7 +297,12 @@ class VisualizationController:
         
         # Calculate relative sizes based on concentration ratios
         # All sizes are relative to max, then scaled by SIZE_MAX for consistency
-        relative_sizes = []
+        sizes = [self._concentration_to_size(
+                    concentration,
+                    alpha_mapping,
+                    num_rows,
+                    num_cols
+                ) for concentration in concentrations]
         max_conc = max(float(k) if isinstance(k, str) else k for k in alpha_mapping.keys())
         
         for conc in concentrations:
@@ -297,8 +310,6 @@ class VisualizationController:
             # Normalize to [0, 1] range
             normalized = conc_numeric / max_conc if max_conc > 0 else 0.5
             # Scale to marker sizes maintaining proportions
-            size = Visualization.CONCENTRATION_SIZE_MIN + (normalized * (Visualization.CONCENTRATION_SIZE_MAX - Visualization.CONCENTRATION_SIZE_MIN))
-            relative_sizes.append(size / FigureProperties.DPI_RATIO)
         
         # Create scatter plot showing size gradient with consistent proportions
         if num_conc == 1:
@@ -314,7 +325,7 @@ class VisualizationController:
             y_positions,
             marker=marker,
             linewidths=0.5 / FigureProperties.DPI_RATIO,
-            s=relative_sizes,
+            s=sizes,
             c=[color],
             edgecolor='black',
             alpha=1.0
@@ -358,9 +369,15 @@ class VisualizationController:
         """
         from core.layout_utils import to_number_if_possible
         
+        # if the plate differs from 16x24 then we need to readjust the size ranges
+        # We do not increase more than 1 / 0.7 to keep the marker size reasonable
+        if plate_num_cols > plate_num_rows:
+            plate_num_rows, plate_num_cols = plate_num_cols, plate_num_rows
+        ratio = max(0.7, plate_num_rows / 24, plate_num_cols / 16)
+        
         # Get size range from constants
-        size_min = Visualization.CONCENTRATION_SIZE_MIN
-        size_max = Visualization.CONCENTRATION_SIZE_MAX
+        size_min = math.floor(Visualization.CONCENTRATION_SIZE_MIN / ratio)
+        size_max = math.floor(Visualization.CONCENTRATION_SIZE_MAX / ratio)
         
         # Handle empty mapping
         if not alpha_mapping:
@@ -436,3 +453,4 @@ class VisualizationController:
         logger.debug(f"Generated colors for {len(concentrations_list)} materials using "
                     f"{min(3, (len(concentrations_list) + num_colors - 1) // num_colors)} extended tab20 colormaps")
         return material_colors
+    

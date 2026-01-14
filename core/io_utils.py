@@ -175,6 +175,9 @@ def read_csv_file(file_path: str) -> List[str]:
         line_count = len(layout_text_array) - 1  # Exclude header
         logger.info(f"CSV file loaded: {file_path}, {line_count} data lines")
         return layout_text_array[1:]  # Remove header
+    except (ValueError) as e:
+        logger.error(f"Failed to read CSV file: {file_path}, error: {e}")
+        raise e
     except (FileNotFoundError, IOError) as e:
         logger.error(f"Failed to read CSV file: {file_path}, error: {e}")
         raise FileNotFoundError(f"Could not read CSV file: {file_path}") from e
