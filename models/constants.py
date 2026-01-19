@@ -96,7 +96,7 @@ class Visualization:
     
     # Figure dimensions
     SCALE_FIGURE_WIDTH = 4
-    SCALE_FIGURE_HEIGHT = 1
+    SCALE_FIGURE_HEIGHT = 0.6
     
     # Alpha transparency range
     ALPHA_MIN = 0.3
@@ -223,9 +223,10 @@ class PlaterFormat:
     CONCENTRATIONS_LABEL = "Concentration"
 
 class FigureProperties:
-    DPI = 300
-    DPI_DISPLAY = 150 # Reference DPI (what sizes were originally designed for)
-    DPI_MPL_DEFAULT = 100
+    DPI = 300 # DPI for saving layouts into files
+    DPI_DISPLAY = 105 # Reference DPI that will be displayed on the screen (what sizes were originally designed for)
+    DPI_MPL_DEFAULT = 100 # Default DPI when a figure is created by matplotlib
+    # When converting figure sizes we take the referene default DPI and the desired DPI and do the adjusetment with this ration:
     DPI_RATIO = DPI_DISPLAY / DPI_MPL_DEFAULT
 
 class Validation:
