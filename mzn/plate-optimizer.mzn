@@ -1,4 +1,4 @@
-% Copyright 2025 COMPD Authors.
+% Copyright 2026 COMPD Authors.
 %
 % Licensed under the Apache License, Version 2.0 (the "License");
 % you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@
 % Description:  A microplate layout designer represented as an optimization problem
 %
 % Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-% Version: 1.3.2
-% Last Revision: November 2025
+% Version: 1.3.3
+% Last Revision: January 2026
 %
 
 include "globals.mzn";
 
 function int: compound_index(int: cmpds, string: cmpd, array[int] of string: cmpds_names) =
                             min([i | i in 1..cmpds where cmpd = cmpds_names[i]]);
+
+function array[int] of int: random_permutation(int: n) = arg_sort([cauchy(0,2) | i in 1..n]);
 
 function var int: distance_manhattan(array[1..2] of var int: P1, array[1..2] of var int: P2) =
                             abs(P1[1] - P2[1]) + abs(P1[2] - P2[2]);
@@ -148,6 +150,29 @@ constraint assert(min(compound_concentrations++[0]) <= num_total_wells_line, "In
 
 int: len_emptywells_controls_compounds = 1 + sum(control_concentrations) + sum(compound_concentrations);
 
+
+% Pre-compute random permutations for each control's concentrations
+% This ensures names and quantities use the SAME permutation.
+% See the declation of emptywells_controls_compounds_categories for explanation
+array[1..num_controls, int] of int: control_concentration_permutations =
+  array2d(1..num_controls, 1..max([control_concentrations[i] | i in 1..num_controls]),
+          [if j <= control_concentrations[i] 
+           then random_permutation(control_concentrations[i])[j]
+           else 0  % padding for controls with fewer concentrations
+           endif
+           | i in 1..num_controls, 
+             j in 1..max([control_concentrations[k] | k in 1..num_controls])]);
+
+% Pre-compute random permutations for each compound's concentrations
+array[1..compounds, int] of int: compound_concentration_permutations =
+  array2d(1..compounds, 1..max([compound_concentrations[i] | i in 1..compounds]),
+          [if j <= compound_concentrations[i] 
+           then random_permutation(compound_concentrations[i])[j]
+           else 0  % padding
+           endif
+           | i in 1..compounds, 
+             j in 1..max([compound_concentrations[k] | k in 1..compounds])]);
+
 % IMPORTANT: We assume that controls and compounds are placed sequentially. i.e. we can't have ["ctrs", "comp", "ctrs"] or ["comp 1", "comp 2", "comp 1"] etc
 %   A reasonable assumption, as these arrays are generated authomatically
 %   BUT! If this assumption is broken then some of the later logic will be broken. Namely WRT array "emptywells_controls_compounds_criteria_ordered"
@@ -156,17 +181,30 @@ array[1..len_emptywells_controls_compounds] of string: emptywells_controls_compo
 array[1..2,1..len_emptywells_controls_compounds] of string: emptywells_controls_compounds_names_concentrations =
          array2d(1..2,1..len_emptywells_controls_compounds,
                  ["ew"] ++
-                 [control_names[i] | i in 1..num_controls, j in 1..control_concentrations[i]] ++
-                 [compound_names[i] | i in 1..compounds, j in 1..compound_concentrations[i]] ++
+                 [control_names[i]  | i in 1..num_controls, j in 1..control_concentrations[i]] ++
+                 [compound_names[i] | i in 1..compounds,    j in 1..compound_concentrations[i]] ++
                  [""] ++
-                 [control_concentration_names[i,j] | i in 1..num_controls, j in 1..control_concentrations[i]] ++
-                 [compound_concentration_names[i,j] | i in 1..compounds, j in 1..compound_concentrations[i]]
+                 [control_concentration_names[i,  control_concentration_permutations[i,j]]  | i in 1..num_controls, j in 1..control_concentrations[i]] ++
+                 [compound_concentration_names[i, compound_concentration_permutations[i,j]] | i in 1..compounds,    j in 1..compound_concentrations[i]]
+                 % random_permutation(*_concentrations[i]) is because we shuffle the list of concentrationsto randomize their assignments within quadrants.
+                 % It is useful in the situations when the number of replicates for each material-concentration is divisible by 4:
+                 % in that situation, all concentrations of the same dose would be in the same quadrant, which is not desirable.
+                 % It is a very specific edge case, but it needs to be accounted for.
+                 % The resulting list would like like this: [dr1-ct2, dr1-ct1, dr1-ct3, dr2-ct3, dr2-ct2, dr2-ct1, dr3-ct1, dr3-ct3, ...]
+                 % This order must be matched in the declaration of array emptywells_controls_compounds_qtys_total (if a change is introduced,
+                 % where the number of replicates between concentrations differs.
                  );
 
 % collect all quantitites before assigning them between plates / lines
 array[1..len_emptywells_controls_compounds] of int: emptywells_controls_compounds_qtys_total =
                  [num_empty_wells] ++
-                 [control_replicates[i] | i in 1..num_controls, j in 1..control_concentrations[i]] ++
+                 
+                 % If the number of replicates depends on the concentration (unlike the current data files),
+                 % then swap "control_replicates[i]" to "control_replicates[i, control_concentration_permutations[i,j]]" in the line below
+                 [control_replicates[i]  | i in 1..num_controls, j in 1..control_concentrations[i]] ++
+                 
+                 % If the number of replicates depends on the concentration (unlike the current data files),
+                 % then swap "compound_replicates[i]" to "compound_replicates[i, compound_concentration_permutations[i,j]]" in the line below
                  [compound_replicates[i] | i in 1..compounds, j in 1..compound_concentrations[i]];
 
 % these parameters are only used for replicates_on_same_plate strategy when num_plates_lines > 1
@@ -192,7 +230,7 @@ int: emptywells_controls_compounds_first_non_zero =
 % this list is only used for randomized strategy when num_plates_lines > 1
 array[int] of int: emptywells_controls_compound_randomized =
       if (num_plates_lines = 1) \/ replicates_on_same_plate \/ replicates_on_different_plates then []
-      else arg_sort([cauchy(0,2) | i in 1..num_plates_lines*num_total_wells_line]) endif;
+      else random_permutation(num_plates_lines*num_total_wells_line) endif;
 
 % Divide materials between plates depending on the strategy
 array[1..num_plates_lines, 1..len_emptywells_controls_compounds] of int: emptywells_controls_compounds_qtys =
@@ -831,13 +869,26 @@ constraint enforce_corner_exclusion(4, num_rows_line - num_corner_empty_wells + 
 % a symmetry breaking ctr - with the caveat that it isn't the best one I can think of. It has a drawback (somewhat grouping one type of concentrations together, in some cases, - it is fine for now, but later I must think on how to restructure it
 constraint forall(p in 1..num_plates_lines, i in 1..4, j in 1..num_criteria_sets where (j = 1 -> use_min_dist_criteria[p,j]) /\
                                                                                        quadrant_criteria_counts[p,i,j] >= 2) % Only for 2+ wells
-           (lex_chain_greater(array2d(1..2, 1..quadrant_criteria_counts[p,i,j],
-                                      [emptywells_controls_compounds_coordinates[p,k,l] | l in 1..2, k in 1..num_total_wells_line
-                                       where emptywells_controls_compounds_criteria_ordered[p,k] = j /\
-                                             quadrant_wells_assignment[p,k] = i /\
-                                             well_excluded_by_optional_constraints(i,p,emptywells_controls_compounds_indices_ordered[p,k]) /\
-                                             (j = 1 -> use_min_dist_criteria[p,j]) % exlude empty wells if not a part of the criteria
-                                       ])));
+  (% we first shuffle the list of replicates, to ensure that specific concentrations are not forced to be on certain ranges of rows
+   let {
+    % 1. Collect wells in original order
+    array[int] of int: wells_original = 
+      [k | k in 1..num_total_wells_line where emptywells_controls_compounds_criteria_ordered[p,k] = j /\
+                                              quadrant_wells_assignment[p,k] = i /\
+                                              well_excluded_by_optional_constraints(i,p,emptywells_controls_compounds_indices_ordered[p,k]) /\
+                                              (j = 1 -> use_min_dist_criteria[p,j])], % exlude empty wells if not a part of the criteria],
+
+    % 2. Generate random permutation
+    array[int] of int: perm = random_permutation(length(wells_original)),
+    
+    % 3. Reorder wells
+    array[int] of int: wells_permuted = 
+      [wells_original[perm[idx]] | idx in 1..length(wells_original)]
+  } in
+  lex_chain_greater(array2d(1..2, 1..length(wells_permuted),
+                            [emptywells_controls_compounds_coordinates[p, wells_permuted[idx], dim] 
+                             | dim in 1..2, idx in 1..length(wells_permuted)])));
+
 
 % symmetry breaking ctr - applied if concentrations_on_different_rows or concentrations_on_different_columns
 constraint forall(p in 1..num_plates_lines, i in 1..4, j in 1..len_emptywells_controls_compounds where quadrant_on_different_rows_columns[p,i,j] >= 2)
