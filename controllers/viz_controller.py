@@ -26,7 +26,7 @@ import ast
 import math
 import numpy as np
 from matplotlib import pyplot as plt
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 from models.csv_data import VisualizationState
 from core.io_utils import read_csv_file
@@ -238,7 +238,7 @@ class VisualizationController:
                 # Map concentration to size
                 concentration = well[2]
                 size = self._concentration_to_size(
-                    concentration,
+                    to_number_if_possible(concentration),
                     alpha_mapping,
                     num_rows,
                     num_cols
@@ -279,7 +279,7 @@ class VisualizationController:
             ax: Matplotlib axes object for the legend
             material_name: Name of the material to show scale for
             viz_state: Visualization state with concentration data
-        """    
+        """
         # Get data for this material
         alpha_mapping = viz_state.alpha_mappings.get(material_name, {})
         color = viz_state.material_colors.get(material_name, np.array([0.5, 0.5, 0.5]))
@@ -304,12 +304,6 @@ class VisualizationController:
                     num_cols
                 ) for concentration in concentrations]
         max_conc = max(float(k) if isinstance(k, str) else k for k in alpha_mapping.keys())
-        
-        for conc in concentrations:
-            conc_numeric = float(conc) if isinstance(conc, str) else conc
-            # Normalize to [0, 1] range
-            normalized = conc_numeric / max_conc if max_conc > 0 else 0.5
-            # Scale to marker sizes maintaining proportions
         
         # Create scatter plot showing size gradient with consistent proportions
         if num_conc == 1:
@@ -348,7 +342,7 @@ class VisualizationController:
     
     def _concentration_to_size(
         self,
-        concentration: Any,
+        concentration: Union[int,float],
         alpha_mapping: Dict[Any, float],
         plate_num_rows: int,
         plate_num_cols: int
@@ -384,9 +378,6 @@ class VisualizationController:
             return (size_min + size_max) / 2
         
         try:
-            # Try to convert concentration to number
-            conc_numeric = to_number_if_possible(concentration)
-            
             # Find max concentration in mapping
             max_conc = max(float(k) if isinstance(k, str) else k for k in alpha_mapping.keys())
             
@@ -395,7 +386,7 @@ class VisualizationController:
                 return (size_min + size_max) / 2
             
             # Normalize concentration to [0, 1]
-            normalized = float(conc_numeric) / float(max_conc)
+            normalized = float(concentration) / float(max_conc)
             
             # Clamp to valid range
             normalized = max(0.0, min(1.0, normalized))

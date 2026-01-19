@@ -16,7 +16,7 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.1
+# Version: 1.2.2
 # Last Revision: January 2026
 #
 
