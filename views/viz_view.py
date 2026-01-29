@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
+# Version: 1.2.3
 # Last Revision: January 2026
 #
 
@@ -100,8 +100,11 @@ class VizView:
         logger.info(f"Opening visualization window for: {file_path}")
         
         # Create window
-        self.window = tk.Tk()
+        self.window = tk.Toplevel(self.parent)
+        self.window.grab_set()
+        
         self.window.title(WindowConfig.TITLE_VISUALIZER)
+        self.window.resizable(False, False)
         self.window.protocol('WM_DELETE_WINDOW', self._cleanup_and_close)
         
         # Reset storage
@@ -147,6 +150,7 @@ class VizView:
             # Set window position and start
             self.window.geometry(f'+{WindowConfig.VIZ_WINDOW_X}+{WindowConfig.VIZ_WINDOW_Y}')
             logger.debug("Entering visualization window mainloop")
+            
             self.window.mainloop()
             
         except Exception as e:

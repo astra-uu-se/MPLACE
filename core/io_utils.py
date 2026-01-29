@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
+# Version: 1.2.3
 # Last Revision: January 2026
 #
 
@@ -165,6 +165,7 @@ def read_csv_file(file_path: str) -> List[str]:
         
     Raises:
         FileNotFoundError: If file cannot be read
+        ValueError: If CSV format is neither PharmBio nor valid Plater format
     """
     try:
         with open(file_path, 'r') as file:
