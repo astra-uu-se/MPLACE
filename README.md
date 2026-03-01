@@ -235,7 +235,8 @@ The following manuscript in SoftwareX can be used to cite this project:
 
 Gindullin, R., & Francisco Rodríguez, M. A. (2026). MPLACE: MicroPlate layout arrangement with constraint engines. SoftwareX, 34, 102584. [https://doi.org/10.1016/j.softx.2026.102584](https://doi.org/10.1016/j.softx.2026.102584)
 
-```@article{gindullin2026,
+```
+@article{gindullin2026,
 	author = {Gindullin, Ramiz and Francisco Rodr\'iguez, Mar\'ia Andre\'ina},
 	title = {MPLACE: MicroPlate layout arrangement with constraint engines},
 	year = {2026},
