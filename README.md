@@ -225,9 +225,9 @@ When generating a *.dzn, compounds and controls are entered as Python-like dicti
 
 ## Roadmap Highlights
 
-- More distinct colors for materials (≥50)
 - Optional exports to standard formats (e.g., Wellmap TOML)
 - Progress indicators for long runs
+- Keyboard shortcuts
 
 ## Citation
 
