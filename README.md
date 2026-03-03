@@ -3,7 +3,7 @@
 
 **MicroPlate Layout Arrangement with Constraint Engines**
 
-MPLACE is a desktop app with a graphical interface for generating and visualizing microplate layouts. It runs MiniZinc models (e.g., PLAID and COMPD) behind the scenes, so you don't need to write code. Typical use: define compounds/controls, produce plate layouts, and save figures for reports.
+MPLACE is a desktop app with a graphical interface for generating and visualizing microplate layouts. It runs MiniZinc models (e.g., [PLAID](https://github.com/pharmbio/plaid) and [COMPD](https://github.com/astra-uu-se/COMPD)) behind the scenes, so you don't need to write code. Typical use: define compounds/controls, produce plate layouts, and save figures for reports.
 
 **Who is this for?**
 - Biomedical researchers and lab staff who want to:
@@ -194,7 +194,7 @@ When generating a *.dzn, compounds and controls are entered as Python-like dicti
 - To locate MiniZinc installation:
   - Windows: Usually `C:/Program Files/MiniZinc/minizinc.exe`
   - macOS: Try `/Applications/MiniZincIDE.app/Contents/Resources/minizinc` or `/usr/local/bin/minizinc`
-  - Linux: Try `/usr/bin/minizinc` or `which minizinc` in terminal
+  - Linux: Try `/usr/bin/minizinc` or `which minizinc` in the terminal
 - Ensure MiniZinc 2.6.4+ is installed with GeCode solver.
 
 **The window opens, but visualization fails**
