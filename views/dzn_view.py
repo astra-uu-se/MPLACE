@@ -17,8 +17,8 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.3
-# Last Revision: January 2026
+# Version: 1.2.4
+# Last Revision: March 2026
 #
 
 import tkinter as tk
@@ -346,6 +346,7 @@ class DznView:
             
                 # Hide window
                 self.hide()
+                self.parent.focus_force()
             else:
                 logger.info("DZN save cancelled by user")
         
@@ -356,6 +357,7 @@ class DznView:
     def _on_close(self) -> None:
         """Handle window close button."""
         self.hide()
+        self.parent.focus_force()
     
     # Public Methods
     

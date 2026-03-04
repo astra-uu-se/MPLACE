@@ -89,6 +89,8 @@ class MainView:
         self._refresh_recent_menus()
         self._set_program_state_to_default()
         
+        self.root.focus_force()
+        
         logger.info("Main view initialized")
     
     def _setup_window(self) -> None:
@@ -368,6 +370,7 @@ class MainView:
             except Exception as e:
                 logger.error(f"DZN loading failed: {path}, error: {e}")
                 messagebox.showerror("Error", f"Failed to load DZN file: {str(e)}")
+        self.root.focus_force()
                                
     def _on_run_minizinc(self) -> None:
         """Handle Run Model button click."""
@@ -445,6 +448,7 @@ class MainView:
             logger.error(f"MiniZinc execution failed: {e}")
             messagebox.showerror("Model Execution Error", 
                                f"Failed to run {model_name} model.\n\n{str(e)}")
+        self.root.focus_force()
     
     def _on_load_csv(self) -> None:
         """Handle Load CSV button click."""
@@ -460,6 +464,7 @@ class MainView:
             except Exception as e:
                 logger.error(f"CSV loading failed: {path}, error: {e}")
                 messagebox.showerror("Error", f"Failed to load CSV file: {str(e)}")
+        self.root.focus_force()
     
     def _on_visualize(self) -> None:
         """Handle Visualize button click."""

@@ -17,7 +17,7 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2.4
-# Last Revision: January 2026
+# Last Revision: March 2026
 
 import tkinter as tk
 import logging

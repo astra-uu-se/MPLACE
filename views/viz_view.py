@@ -17,8 +17,8 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.3
-# Last Revision: January 2026
+# Version: 1.2.4
+# Last Revision: March 2026
 #
 
 import tkinter as tk
@@ -462,6 +462,7 @@ class VizView:
                 logger.info("Visualization window closed")
                 self.window.destroy()
                 self.window = None
+                self.parent.focus_force()
     
     def _cleanup_canvas_widgets(self, widget: tk.Misc) -> None:
         """
