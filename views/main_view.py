@@ -18,7 +18,7 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.2.4
-# Last Revision: January 2026
+# Last Revision: March 2026
 #
 
 import tkinter as tk
@@ -54,7 +54,6 @@ class MainView:
         csv_controller: CsvController,
         on_generate_dzn_clicked: Callable[[], None],
         on_visualize_clicked: Callable[[], None]
-        
     ):
         """Initialize main view matching original layout."""
         logger.info("Initializing main view")
@@ -69,21 +68,23 @@ class MainView:
         self.recent_dzn: List[str] = []
         self.recent_csv: List[str] = []
         
+        self._init_variables()
+        self._build_ui()
+        
+        
         self._shortcuts = [
-            # (menu, label,           key_event,    accelerator,  handler)
-            ("file",  "Load DZN…",    "<Control-d>", "Ctrl+D",   self._on_load_dzn),
-            ("file",  "Load CSV…",    "<Control-c>", "Ctrl+C",   self._on_load_csv),
-            ("tools", "Generate DZN…","<Control-g>", "Ctrl+G",   self._on_generate_dzn),
-            ("tools", "Run MiniZinc…","<Control-r>", "Ctrl+R",   self._on_run_minizinc),
-            ("tools", "Visualize",    "<Control-v>", "Ctrl+V",   self._on_visualize),
-            ("tools", "Reset",        "<Control-e>", "Ctrl+E",   self._set_program_state_to_default),
+            # (menu,  label,          key_event,     accelerator, handler,                            guard)
+            ("file",  "Load DZN…",    "<Control-d>", "Ctrl+D",    self._on_load_dzn,                  None),
+            ("file",  "Load CSV…",    "<Control-c>", "Ctrl+C",    self._on_load_csv,                  None),
+            ("tools", "Generate DZN…","<Control-g>", "Ctrl+G",    self._on_generate_dzn,              None),
+            ("tools", "Run MiniZinc…","<Control-r>", "Ctrl+R",    self._on_run_minizinc,              self.button_run_minizinc),
+            ("tools", "Visualize",    "<Control-v>", "Ctrl+V",    self._on_visualize,                 self.button_visualize),
+            ("tools", "Reset",        "<Control-e>", "Ctrl+E",    self._set_program_state_to_default, None),
         ]
         
         self._setup_window()
-        self._init_variables()
-        self._build_ui()
-        self._setup_menu()
         self._setup_shortcuts()
+        self._setup_menu()
         self._load_recents()
         self._refresh_recent_menus()
         self._set_program_state_to_default()
@@ -279,7 +280,7 @@ class MainView:
 
         menus = {"file": self.menu_file, "tools": self.menu_tools}
 
-        for menu_key, label, _, accelerator, handler in self._shortcuts:
+        for menu_key, label, _, accelerator, handler, _ in self._shortcuts:
             menus[menu_key].add_command(
                 label=label, accelerator=accelerator, command=handler
             )
@@ -294,12 +295,16 @@ class MainView:
         self.menu_bar.add_cascade(label="File",  menu=self.menu_file)
         self.menu_bar.add_cascade(label="Tools", menu=self.menu_tools)
         self.root.config(menu=self.menu_bar)
-
+    
     def _setup_shortcuts(self) -> None:
         """Bind keyboard shortcuts, deriving bindings from self._shortcuts."""
-        for _, _, key_event, _, handler in self._shortcuts:
-            self.root.bind(key_event, lambda e, h=handler: h())
-        logger.debug("Keyboard shortcuts registered")
+        for _, _, key_event, _, handler, guard in self._shortcuts:
+            if guard is not None:
+                self.root.bind(key_event,
+                    lambda e, h=handler, g=guard: h() if not g.instate(['disabled']) else None)
+            else:
+                self.root.bind(key_event, lambda e, h=handler: h())
+        logger.debug("Keyboard shortcuts registered")    
     
     def _on_generate_dzn(self) -> None:
         """Handle Generate DZN button click."""
@@ -328,14 +333,16 @@ class MainView:
         compd_available = (
             self.controller.app_config.compd_path != PathsIni.FILE_ERROR_PLACEHOLDER
         )
+        dzn_loaded = bool(self.dzn_file_path.get())
 
         # Button enabled if MiniZinc present AND at least one model available
         button_should_be_enabled = (
-            minizinc_available and (plaid_available or compd_available)
+            minizinc_available and (plaid_available or compd_available) and dzn_loaded
         )
 
         new_state = tk.NORMAL if button_should_be_enabled else tk.DISABLED
         self.button_run_minizinc.config(state=new_state)
+        self.menu_tools.entryconfig("Run MiniZinc…", state=new_state)
 
         if button_should_be_enabled:
             logger.debug("Run Model button enabled - config valid")
@@ -573,6 +580,7 @@ class MainView:
         path_show(path, self.label_csv_loaded)
         self.csv_file_path.set(path)
         self.button_visualize.config(state=tk.NORMAL)
+        self.menu_tools.entryconfig("Visualize", state=tk.NORMAL)
     
         self.controller.load_csv_file(path)
     
@@ -607,6 +615,7 @@ class MainView:
         
         # Disable visualization button (no CSV loaded)
         self.button_visualize.config(state=tk.DISABLED)
+        self.menu_tools.entryconfig("Visualize", state=tk.DISABLED)
         
         # Reapply config constraints (radio states + Run button state)
         self._apply_config_defaults()
