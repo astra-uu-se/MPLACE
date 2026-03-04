@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
+# Version: 1.2.4
 # Last Revision: January 2026
 #
 
@@ -54,6 +54,7 @@ class MainView:
         csv_controller: CsvController,
         on_generate_dzn_clicked: Callable[[], None],
         on_visualize_clicked: Callable[[], None]
+        
     ):
         """Initialize main view matching original layout."""
         logger.info("Initializing main view")
@@ -68,10 +69,21 @@ class MainView:
         self.recent_dzn: List[str] = []
         self.recent_csv: List[str] = []
         
+        self._shortcuts = [
+            # (menu, label,           key_event,    accelerator,  handler)
+            ("file",  "Load DZN…",    "<Control-d>", "Ctrl+D",   self._on_load_dzn),
+            ("file",  "Load CSV…",    "<Control-c>", "Ctrl+C",   self._on_load_csv),
+            ("tools", "Generate DZN…","<Control-g>", "Ctrl+G",   self._on_generate_dzn),
+            ("tools", "Run MiniZinc…","<Control-r>", "Ctrl+R",   self._on_run_minizinc),
+            ("tools", "Visualize",    "<Control-v>", "Ctrl+V",   self._on_visualize),
+            ("tools", "Reset",        "<Control-e>", "Ctrl+E",   self._set_program_state_to_default),
+        ]
+        
         self._setup_window()
         self._init_variables()
         self._build_ui()
         self._setup_menu()
+        self._setup_shortcuts()
         self._load_recents()
         self._refresh_recent_menus()
         self._set_program_state_to_default()
@@ -257,16 +269,37 @@ class MainView:
         self._update_run_minizinc_button_state()
     
     def _setup_menu(self) -> None:
-        """Setup menu bar with recent files."""
+        """Setup menu bar, deriving entries from self._shortcuts."""
         self.menu_bar = tk.Menu(self.root)
-        self.menu_file = tk.Menu(self.menu_bar, tearoff=0)
+
+        self.menu_file  = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_tools = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_recent_dzn = tk.Menu(self.menu_file, tearoff=0)
         self.menu_recent_csv = tk.Menu(self.menu_file, tearoff=0)
-        
-        self.menu_file.add_cascade(label="Recent DZN files", menu=self.menu_recent_dzn)
-        self.menu_file.add_cascade(label="Recent CSV files", menu=self.menu_recent_csv)
-        self.menu_bar.add_cascade(label="File", menu=self.menu_file)
+
+        menus = {"file": self.menu_file, "tools": self.menu_tools}
+
+        for menu_key, label, _, accelerator, handler in self._shortcuts:
+            menus[menu_key].add_command(
+                label=label, accelerator=accelerator, command=handler
+            )
+            # Insert the Recent submenus after the Load CSV entry
+            if label == "Load CSV…":
+                self.menu_file.add_separator()
+                self.menu_file.add_cascade(label="Recent DZN files", menu=self.menu_recent_dzn)
+                self.menu_file.add_cascade(label="Recent CSV files", menu=self.menu_recent_csv)
+            elif label == "Run MiniZinc…":
+                self.menu_tools.add_separator()  # separator before Visualize
+
+        self.menu_bar.add_cascade(label="File",  menu=self.menu_file)
+        self.menu_bar.add_cascade(label="Tools", menu=self.menu_tools)
         self.root.config(menu=self.menu_bar)
+
+    def _setup_shortcuts(self) -> None:
+        """Bind keyboard shortcuts, deriving bindings from self._shortcuts."""
+        for _, _, key_event, _, handler in self._shortcuts:
+            self.root.bind(key_event, lambda e, h=handler: h())
+        logger.debug("Keyboard shortcuts registered")
     
     def _on_generate_dzn(self) -> None:
         """Handle Generate DZN button click."""
