@@ -26,9 +26,9 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Improve Error Diagnostics        | Not done       | MiniZinc failures could provide more specific diagnostic information; enhance subprocess error handling with context-specific guidance. |
 | Low      | Add Bounds Checking              | Not done       | Plate dimensions and layout parameters lack validation against reasonable limits; add input validation with helpful error messages. |
 | Low      | Enhance Documentation            | Not done       | Complex algorithms like parse_control_string need more detailed inline comments; add concrete usage examples in docstrings. |
-| Low      | Add Unit Test Coverage           | Not done       | No apparent test coverage for utility functions and data processing; create test suite for core functionality. |
+| Low      | Add Unit Test Coverage           | Not done       | No apparent test coverage for utility functions and data processing; create a test suite for core functionality. |
 | Low      | Add Integration Tests            | Not done       | No end-to-end testing of DZN → MiniZinc → CSV → Visualization workflow; add comprehensive integration test suite. |
-| Low      | Add Keyboard Shortcuts           | Not done       | No keyboard shortcuts for common operations; add standard shortcuts (Ctrl+O for open, etc.) for improved productivity. |
+| Low      | Add Keyboard Shortcuts           | Done       | Added keyboard shortcuts for common operations, together with additional main menu items |
 | Low      | Create Recent Files Menu         | Done           | No quick access to recently used DZN/CSV files; add recent files functionality for better workflow efficiency. |
 | Low      | Add Batch Processing Support     | Not done       | No support for processing multiple files in sequence; add batch processing capabilities for research workflows. |
 | Low      | Expand Export Format Options     | Done           | Export support for PNG and PDF formats for publication-quality figures. |
