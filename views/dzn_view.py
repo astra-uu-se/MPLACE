@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.4
+# Version: 1.2.5
 # Last Revision: March 2026
 #
 
@@ -49,13 +49,15 @@ class DznView:
         parent: Parent Tkinter window
         controller: DZN controller instance
         on_generation_complete: Callback when DZN generation completes
+        on_window_closed: Callback when the window is closed
     """
     
     def __init__(
         self,
         parent: tk.Tk,
         controller: DznController,
-        on_generation_complete: Callable[[str, str, str, str], None]
+        on_generation_complete: Callable[[str, str, str, str], None],
+        on_window_closed: Optional[Callable[[], None]] = None
     ):
         """
         Initialize DZN generation view.
@@ -68,12 +70,17 @@ class DznView:
         self.parent = parent
         self.controller = controller
         self.on_generation_complete = on_generation_complete
+        self.on_window_closed = on_window_closed
+        
+        # get the coordinates for the window position
+        x = self.parent.winfo_rootx() + WindowConfig.DZN_WINDOW_X
+        y = self.parent.winfo_rooty() + WindowConfig.DZN_WINDOW_Y
         
         # Create window
         self.window = tk.Toplevel(self.parent)
         self.window.title(WindowConfig.TITLE_DZN_GENERATOR)
         self.window.resizable(False, False)
-        self.window.geometry(f'+{WindowConfig.DZN_WINDOW_X}+{WindowConfig.DZN_WINDOW_Y}')
+        self.window.geometry(f'+{x}+{y}')
         self.window.protocol('WM_DELETE_WINDOW', self._on_close)
         self.window.withdraw()
         
@@ -239,7 +246,7 @@ class DznView:
         """Create materials section widgets."""
         materials = [
             ('List of compounds \nwith concentrations', self.drugs, 
-             "List all the materials and their concentrations.\nWe use the format of Python dictionaries: {'Drug1': [5,'2', 'N/A'], 'Drug2': [10, '0.1', '0.5, '10']},\nwhich means that we will have:\n - Drug1 in concentrations '2' and 'N/A' (5 replicates each) and\n - Drug2 in concentrations 0.1, 0.5 and 10 (10 replicates each).\nI recommend to write down the list of materials in the spreadsheet `Convert the compounds and controls.xlsx`,\navailable at https://github.com/astra-uu-se/MPLACE, and then copy generated text here", 0),
+             "List all the materials and their concentrations.\nWe use the format of Python dictionaries: {'Drug1': [5,'2', 'N/A'], 'Drug2': [10, '0.1', '0.5', '10']},\nwhich means that we will have:\n - Drug1 in concentrations '2' and 'N/A' (5 replicates each) and\n - Drug2 in concentrations 0.1, 0.5 and 10 (10 replicates each).\nI recommend to write down the list of materials in the spreadsheet `Convert the compounds and controls.xlsx`,\navailable at https://github.com/astra-uu-se/MPLACE, and then copy generated text here", 0),
             ('List of controls \nwith concentrations:', self.controls,
              "List all the controls and their concentrations.\nWe use the same format as the list of materials.\nAs an illustration, here is another example, for controls:\n   {'Control1': [5, '2', 'N/A'], 'pos': [10, '100'], 'DMSO': [3, '100']},\nwhere we have three different controls.\nAs you can see, the dictionary format allows us to use various number of drugs/controls,\nwhere each drug/control can have its own number of replicates and/or the list concentrations", 1)
         ]
@@ -371,6 +378,8 @@ class DznView:
         """Hide the DZN generation window."""
         self.window.withdraw()
         self.window.grab_release()
+        if self.on_window_closed:
+            self.on_window_closed()
         logger.debug("DZN window hidden")
     
     def reset_to_defaults(self) -> None:

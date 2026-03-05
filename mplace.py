@@ -16,7 +16,7 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.4
+# Version: 1.2.5
 # Last Revision: March 2026
 
 import tkinter as tk
@@ -140,7 +140,8 @@ class MPlaceApplication:
         dzn_view = DznView(
             parent=self.root,
             controller=self.controllers['dzn'],
-            on_generation_complete=self._on_dzn_generated
+            on_generation_complete=self._on_dzn_generated,
+            on_window_closed=lambda: main_view.unlock()
         )
         
         # Create visualization view
@@ -183,11 +184,13 @@ class MPlaceApplication:
     def _open_dzn_window(self) -> None:
         """Open the DZN generation window."""
         self.logger.info("Opening DZN generation window")
+        self.views['main'].lock()       # ← lock before opening
         self.views['dzn'].show()
     
     def _open_viz_window(self) -> None:
         """Open the visualization window."""
         self.logger.info("Opening visualization window")
+        self.views['main'].lock()
         state = self.state
         
         # Check if CSV is loaded
@@ -212,6 +215,8 @@ class MPlaceApplication:
             cols=state.num_cols,
             control_names=state.control_names
         )
+        
+        self.views['main'].unlock()
     
     def _on_dzn_generated(self, file_path: str, rows: str, cols: str, controls: str) -> None:
         """

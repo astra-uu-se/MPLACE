@@ -17,8 +17,8 @@
 # Orchestrates main window operations and coordinates other controllers.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
-# Last Revision: January 2026
+# Version: 1.2.5
+# Last Revision: March 2026
 #
 
 import logging
@@ -65,10 +65,7 @@ class MainController:
             raise
         
         # Initialize child controllers (they'll receive config as needed)
-        self.dzn_controller = DznController()
-        self.csv_controller = CsvController()
         self.minizinc_controller = MiniZincController(self.app_config)
-        self.viz_controller = VisualizationController()
         
         logger.info("MainController initialized")
     

@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.4
+# Version: 1.2.5
 # Last Revision: March 2026
 #
 
@@ -71,15 +71,14 @@ class MainView:
         self._init_variables()
         self._build_ui()
         
-        
         self._shortcuts = [
-            # (menu,  label,          key_event,     accelerator, handler,                            guard)
-            ("file",  "Load DZN…",    "<Control-d>", "Ctrl+D",    self._on_load_dzn,                  None),
-            ("file",  "Load CSV…",    "<Control-c>", "Ctrl+C",    self._on_load_csv,                  None),
-            ("tools", "Generate DZN…","<Control-g>", "Ctrl+G",    self._on_generate_dzn,              None),
-            ("tools", "Run MiniZinc…","<Control-r>", "Ctrl+R",    self._on_run_minizinc,              self.button_run_minizinc),
-            ("tools", "Visualize",    "<Control-v>", "Ctrl+V",    self._on_visualize,                 self.button_visualize),
-            ("tools", "Reset",        "<Control-e>", "Ctrl+E",    self._set_program_state_to_default, None),
+            # (menu,  label,          key_event,     accelerator, handler,                                 guard)
+            ("file",  "Load DZN…",    "<Control-d>", "Ctrl+D",    self._on_load_dzn,                       None),
+            ("file",  "Load CSV…",    "<Control-f>", "Ctrl+f",    self._on_load_csv,                       None),
+            ("tools", "Generate DZN…","<Control-g>", "Ctrl+G",    self._on_generate_dzn,                   None),
+            ("tools", "Run MiniZinc…","<Control-r>", "Ctrl+R",    self._on_run_minizinc,                   self.button_run_minizinc),
+            ("tools", "Visualize",    "<Control-l>", "Ctrl+L",    self._on_visualize,                      self.button_visualize),
+            ("tools", "Reset",        "<Control-e>", "Ctrl+E",    self._set_program_state_to_default_call, None),
         ]
         
         self._setup_window()
@@ -181,7 +180,7 @@ class MainView:
         )
         self.button__set_program_state_to_default = ttk.Button(
             self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD,
-            text=Messages.BUTTON_RESET, command=self._set_program_state_to_default
+            text=Messages.BUTTON_RESET, command=self._set_program_state_to_default_call
         )
         
         self.frame_matplotlib.columnconfigure(0, weight=UI.GRID_WEIGHT)
@@ -244,10 +243,6 @@ class MainView:
 
         # 2) Auto-select a valid model (based on config, not widget state)
         current_selection = self.use_compd_flag.get()  # True/False boolean
-
-        # NOTE: in your code use_compd_flag is a BooleanVar, but UI.SELECT_PLAID /
-        # UI.SELECT_COMPD are probably booleans too; if they are ints/strings,
-        # adjust comparisons accordingly.
 
         if current_selection == UI.SELECT_COMPD and not compd_available:
             # COMPD selected but unavailable -> fall back to PLAID if possible
@@ -363,8 +358,7 @@ class MainView:
                 self.num_cols.set(cols)
                 self.num_rows.set(rows)
                 self.control_names.set(controls)
-                logger.info(f"Loaded DZN: {rows}x{cols} plate, controls: {controls}")
-                logger.info(f"DZN file loaded successfully: {path}")
+                logger.info(f"DZN file loaded successfully: {path}, {rows}x{cols} plate, controls: {controls}")
                 self._update_run_minizinc_button_state()
                 self._add_to_recent(path, is_dzn=True)
             except Exception as e:
@@ -380,7 +374,6 @@ class MainView:
     
         model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
         logger.info(f"Running {model_name} model...")
-        logger.info(f"Starting MiniZinc execution with {model_name} model")
     
         original_text = self.label_csv_loaded.cget("text")
         self.label_csv_loaded.config(text='Running the model...')
@@ -408,9 +401,11 @@ class MainView:
                 (FileTypes.CSV, "CSV (PharmBio) - default MPLACE format"),
                 (FileTypes.CSV_PLATER, "CSV (PLATER) - plate-shaped format for R package")
             ]
-        
+            
+            self.lock()
             chosen_format = ask_layout_export_format(self.root, file_formats)
-        
+            self.unlock()
+            
             if not chosen_format:
                 # User cancelled
                 self.label_csv_loaded.config(text=original_text)
@@ -433,8 +428,7 @@ class MainView:
             if csv_path and isinstance(csv_path, str) and csv_path not in ['', '-1', '-2']:
                 self._refresh_recent_menus_path(csv_path)
                 self._add_to_recent(csv_path, is_dzn=False)
-                logger.info(f"Layout exported successfully: {os.path.basename(csv_path)}")
-                logger.info(f"MiniZinc execution completed: {csv_path}")
+                logger.info(f"MiniZinc execution completed: {os.path.basename(csv_path)}")
             else:
                 self.label_csv_loaded.config(text=original_text)
                 if csv_path in ['-1', '']:
@@ -457,10 +451,6 @@ class MainView:
             try:
                 self._refresh_recent_menus_path(path)
                 self._add_to_recent(path, is_dzn=False)
-                with open(path, 'r') as f:
-                    line_count = sum(1 for _ in f) - 1
-                logger.info(f"Loaded CSV: {line_count} layout entries")
-                logger.info(f"CSV file loaded: {path}, {line_count} entries")
             except Exception as e:
                 logger.error(f"CSV loading failed: {path}, error: {e}")
                 messagebox.showerror("Error", f"Failed to load CSV file: {str(e)}")
@@ -600,11 +590,16 @@ class MainView:
         path_show(file_path, self.label_dzn_loaded)
         self._add_to_recent(file_path, is_dzn=True)
         self._update_run_minizinc_button_state()
-        logger.info(f"DZN integrated: {rows}x{cols} plate, controls: {controls}")
-        logger.info(f"DZN generation result integrated: {file_path}")
+        logger.info(f"DZN file generated, {file_path}: {rows}x{cols} plate, controls: {controls}")
+    
+    def _set_program_state_to_default_call(self) -> None:
+        """Calls to reset all form fields to defaults."""
+        if messagebox.askyesno("Reset", "Would you like to reset all fields?"):
+            self._set_program_state_to_default()
     
     def _set_program_state_to_default(self) -> None:
         """Reset all form fields to defaults."""
+        
         # Clear loaded files
         self.dzn_file_path.set('')
         self.csv_file_path.set('')
@@ -627,6 +622,58 @@ class MainView:
         
         logger.info("Application state reset to defaults")
     
+    def lock(self) -> None:
+        """Disable all interactive controls while a modal sub-window is open."""
+        # Consume shortcut key events so they don't fire on the root
+        for _, _, key_event, _, _, _ in self._shortcuts:
+            self.root.bind(key_event, lambda e: "break")
+        # Disable buttons
+        self.button_generate_dzn.config(state=tk.DISABLED)
+        self.button_load_dzn.config(state=tk.DISABLED)
+        self.button_load_csv.config(state=tk.DISABLED)
+        self.button_run_minizinc.config(state=tk.DISABLED)
+        self.button_visualize.config(state=tk.DISABLED)
+        self.button__set_program_state_to_default.config(state=tk.DISABLED)
+        
+        # Disable menu entries
+        self.menu_file.entryconfig("Load DZN…",    state=tk.DISABLED)
+        self.menu_file.entryconfig("Load CSV…",    state=tk.DISABLED)
+        self.menu_file.entryconfig("Recent DZN files", state=tk.DISABLED)
+        self.menu_file.entryconfig("Recent CSV files", state=tk.DISABLED)
+        self.menu_tools.entryconfig("Generate DZN…", state=tk.DISABLED)
+        self.menu_tools.entryconfig("Run MiniZinc…", state=tk.DISABLED)
+        self.menu_tools.entryconfig("Visualize",     state=tk.DISABLED)
+        self.menu_tools.entryconfig("Reset",         state=tk.DISABLED)
+        logger.debug("Main window locked")
+
+    def unlock(self) -> None:
+        """Re-enable main window controls after a modal sub-window closes."""
+        try:
+            if not self.root.winfo_exists():
+                return  # Window was destroyed while modal was open
+        except tk.TclError:
+            return      # Tk interpreter itself was destroyed
+        
+        # Restore keyboard shortcuts
+        self._setup_shortcuts()
+        # Restore always-available controls
+        self.button_generate_dzn.config(state=tk.NORMAL)
+        self.button_load_dzn.config(state=tk.NORMAL)
+        self.button_load_csv.config(state=tk.NORMAL)
+        self.button__set_program_state_to_default.config(state=tk.NORMAL)
+        self.menu_file.entryconfig("Load DZN…",      state=tk.NORMAL)
+        self.menu_file.entryconfig("Load CSV…",      state=tk.NORMAL)
+        self.menu_file.entryconfig("Recent DZN files", state=tk.NORMAL)
+        self.menu_file.entryconfig("Recent CSV files", state=tk.NORMAL)
+        self.menu_tools.entryconfig("Generate DZN…", state=tk.NORMAL)
+        self.menu_tools.entryconfig("Reset",         state=tk.NORMAL)
+        
+        # Restore state-dependent controls without resetting data
+        self._update_run_minizinc_button_state()
+        if self.csv_file_path.get():
+            self.button_visualize.config(state=tk.NORMAL)
+            self.menu_tools.entryconfig("Visualize", state=tk.NORMAL)
+        logger.debug("Main window unlocked")
     
     def show(self) -> None:
         """Show main window and start event loop."""

@@ -20,8 +20,8 @@
 # Coordinates file selection and writing through native dialog interfaces.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
-# Last Revision: January 2026
+# Version: 1.2.5
+# Last Revision: March 2026
 #
 
 import logging
@@ -175,23 +175,3 @@ class CsvController:
             logger.error(f"Unexpected error during PLATER export: {e}")
             raise RuntimeError(f"Unexpected error: {e}") from e
     
-    def validate_csv_lines(self, csv_lines: List[str]) -> bool:
-        """
-        Validate that CSV lines are properly formatted.
-        
-        Args:
-            csv_lines: CSV lines to validate
-            
-        Returns:
-            True if valid, False otherwise
-        """
-        if not csv_lines:
-            logger.warning("CSV validation failed: empty lines")
-            return False
-        
-        if len(csv_lines) < 2:  # Need at least header + 1 data row
-            logger.warning("CSV validation failed: insufficient rows")
-            return False
-        
-        logger.debug("CSV validation passed")
-        return True
