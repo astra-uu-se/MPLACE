@@ -291,6 +291,8 @@ Gindullin, R., & Francisco Rodríguez, M. A. (2026). MPLACE: MicroPlate layout a
 }
 ```
 
+**Note:** The paper describes version 1.2.3. The latest version (1.2.5+) includes additional bug fixes and UX improvements — see the repository for updates.
+
 ## Credits
 
 MPLACE is developed by [Ramiz Gindullin](https://orcid.org/0000-0003-4947-9641) except:
