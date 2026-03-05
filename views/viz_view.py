@@ -460,6 +460,7 @@ class VizView:
         finally:
             if self.window:
                 logger.info("Visualization window closed")
+                self.window.quit()
                 self.window.destroy()
                 self.window = None
                 self.parent.focus_force()
