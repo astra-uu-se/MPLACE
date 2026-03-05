@@ -202,7 +202,7 @@ When generating a *.dzn, compounds and controls are entered as Python-like dicti
 - Try re-running the model and saving the CSV again.
 
 **Colors repeat with many materials**
-- Current palette has 60 distinct colors.
+- The palette supports up to 60 distinct materials. If your layout exceeds this, colors will cycle
 
 **Exported PLATER files**
 - If multiple plates were generated, you will be prompted to save multiple files (one per plate). The completion dialog lists all saved file names.
