@@ -212,22 +212,66 @@ When generating a *.dzn, compounds and controls are entered as Python-like dicti
 - After visualizing, click "Save Layout(s)" in the visualization window. For multiple plates, choose PNG (individual files) or PDF (single file with all plates).
 
 
-## Advanced (optional)
+## Advanced
 
 **Switching solvers/threads**
-- Edit `mzn/plaid_default.mpc` or `mzn/compd_default.mpc` to change solver settings (e.g., threads).
+- Edit `mzn/plaid_default.mpc` or `mzn/compd_default.mpc` to change solver settings (see below).
 
 **Timeouts**
-- For COMPD, you may need to increase the timeout from 180s to 300s (or higher) or higher if results are unsatisfactory.
+- For COMPD, you may need to increase the timeout from 180s to 300s (or higher) or higher if results are unsatisfactory (see below).
 
 **Models**
 - The repo includes model files under `mzn/`. You can point `paths.ini` to other model files if needed.
+
+
+## Solver Configuration (.mpc files)
+
+The `.mpc` files under `mzn/` are plain JSON files that control how MiniZinc runs each model. You can open them in any text editor.
+
+**`mzn/plaid_default.mpc`** (PLAID — uses GeCode solver):
+```json
+{
+    "solver": "org.gecode.gecode",
+    "parallel": 8,
+    ...
+}
+```
+
+**`mzn/compd_default.mpc`** (COMPD — uses CP-SAT solver):
+```json
+{
+    "solver": "cp-sat",
+    "parallel": 8,
+    "time-limit": 180000,
+    ...
+}
+```
+
+**Common adjustments:**
+
+- **Number of threads** — change `"parallel"` to match your machine's CPU count. The default is `8`; reduce it if you want to leave cores free for other work:
+  ```json
+  "parallel": 4
+  ```
+  or increase if you want to use all available cores on your platform
+
+- **Timeout (COMPD only)** — `"time-limit"` is in **milliseconds**. The default is 180 000 ms (3 minutes). Increase it if COMPD returns a suboptimal layout or times out on large plates without producing a layout, for example:
+  ```json
+  "time-limit": 300000
+  ```
+  Note: PLAID does not use a timeout by default, and it runs until a solution is found.
+
+- **Switching solvers** — change the `"solver"` field to any solver installed in your MiniZinc distribution. For example, to use CP-SAT for PLAID (if installed):
+  ```json
+  "solver": "cp-sat"
+  ```
+  If the configured solver is not found, MPLACE falls back to GeCode with 1 thread and shows a warning on startup.
+
 
 ## Roadmap Highlights
 
 - Optional exports to standard formats (e.g., Wellmap TOML)
 - Progress indicators for long runs
-- Keyboard shortcuts
 
 ## Citation
 
