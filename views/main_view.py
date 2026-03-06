@@ -31,7 +31,7 @@ from typing import Callable, List
 from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
 from controllers.csv_controller import CsvController
-from models.constants import PlateDefaults, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
+from models.constants import PlateDefaults, MainMenu, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
 from core.io_utils import path_show
 from ui.ui_validators import numeric_entry_callback
 
@@ -72,15 +72,15 @@ class MainView:
         self._build_ui()
         
         self._shortcuts = [
-            # (menu,  label,          key_event,     accelerator, handler,                                 guard)
-            ("file",  "Load DZN…",    "<Control-d>", "Ctrl+D",    self._on_load_dzn,                       None),
-            ("file",  "Load CSV…",    "<Control-f>", "Ctrl+f",    self._on_load_csv,                       None),
-            ("tools", "Generate DZN…","<Control-g>", "Ctrl+G",    self._on_generate_dzn,                   None),
-            ("tools", "Run MiniZinc…","<Control-r>", "Ctrl+R",    self._on_run_minizinc,                   self.button_run_minizinc),
-            ("tools", "Visualize",    "<Control-l>", "Ctrl+L",    self._on_visualize,                      self.button_visualize),
-            ("tools", "Reset",        "<Control-e>", "Ctrl+E",    self._set_program_state_to_default_call, None),
+            # (menu,  label,              key_event,     accelerator, handler,                                 guard)
+            ("file",  MainMenu.LOAD_DZN,  "<Control-d>", "Ctrl+D",    self._on_load_dzn,                       None),
+            ("file",  MainMenu.LOAD_CSV,  "<Control-f>", "Ctrl+F",    self._on_load_csv,                       None),
+            ("tools", MainMenu.GEN_DZN,   "<Control-g>", "Ctrl+G",    self._on_generate_dzn,                   None),
+            ("tools", MainMenu.RUN_MZN,   "<Control-r>", "Ctrl+R",    self._on_run_minizinc,                   self.button_run_minizinc),
+            ("tools", MainMenu.VISUALIZE, "<Control-l>", "Ctrl+L",    self._on_visualize,                      self.button_visualize),
+            ("tools", MainMenu.RESET,     "<Control-e>", "Ctrl+E",    self._set_program_state_to_default_call, None),
         ]
-        
+                
         self._setup_window()
         self._setup_shortcuts()
         self._setup_menu()
@@ -282,11 +282,11 @@ class MainView:
                 label=label, accelerator=accelerator, command=handler
             )
             # Insert the Recent submenus after the Load CSV entry
-            if label == "Load CSV…":
+            if label == MainMenu.LOAD_CSV:
                 self.menu_file.add_separator()
-                self.menu_file.add_cascade(label="Recent DZN files", menu=self.menu_recent_dzn)
-                self.menu_file.add_cascade(label="Recent CSV files", menu=self.menu_recent_csv)
-            elif label == "Run MiniZinc…":
+                self.menu_file.add_cascade(label=MainMenu.RCNT_DZN, menu=self.menu_recent_dzn)
+                self.menu_file.add_cascade(label=MainMenu.RCNT_CSV, menu=self.menu_recent_csv)
+            elif label == MainMenu.RUN_MZN:
                 self.menu_tools.add_separator()  # separator before Visualize
 
         self.menu_bar.add_cascade(label="File",  menu=self.menu_file)
@@ -339,7 +339,7 @@ class MainView:
 
         new_state = tk.NORMAL if button_should_be_enabled else tk.DISABLED
         self.button_run_minizinc.config(state=new_state)
-        self.menu_tools.entryconfig("Run MiniZinc…", state=new_state)
+        self.menu_tools.entryconfig(MainMenu.RUN_MZN, state=new_state)
 
         if button_should_be_enabled:
             logger.debug("Run Model button enabled - config valid")
@@ -636,14 +636,14 @@ class MainView:
         self.button__set_program_state_to_default.config(state=tk.DISABLED)
         
         # Disable menu entries
-        self.menu_file.entryconfig("Load DZN…",    state=tk.DISABLED)
-        self.menu_file.entryconfig("Load CSV…",    state=tk.DISABLED)
-        self.menu_file.entryconfig("Recent DZN files", state=tk.DISABLED)
-        self.menu_file.entryconfig("Recent CSV files", state=tk.DISABLED)
-        self.menu_tools.entryconfig("Generate DZN…", state=tk.DISABLED)
-        self.menu_tools.entryconfig("Run MiniZinc…", state=tk.DISABLED)
-        self.menu_tools.entryconfig("Visualize",     state=tk.DISABLED)
-        self.menu_tools.entryconfig("Reset",         state=tk.DISABLED)
+        self.menu_file.entryconfig( MainMenu.LOAD_DZN,  state=tk.DISABLED)
+        self.menu_file.entryconfig( MainMenu.LOAD_CSV,  state=tk.DISABLED)
+        self.menu_file.entryconfig( MainMenu.RCNT_DZN,  state=tk.DISABLED)
+        self.menu_file.entryconfig( MainMenu.RCNT_CSV,  state=tk.DISABLED)
+        self.menu_tools.entryconfig(MainMenu.GEN_DZN,   state=tk.DISABLED)
+        self.menu_tools.entryconfig(MainMenu.RUN_MZN,   state=tk.DISABLED)
+        self.menu_tools.entryconfig(MainMenu.VISUALIZE, state=tk.DISABLED)
+        self.menu_tools.entryconfig(MainMenu.RESET,     state=tk.DISABLED)
         logger.debug("Main window locked")
 
     def unlock(self) -> None:
@@ -661,18 +661,18 @@ class MainView:
         self.button_load_dzn.config(state=tk.NORMAL)
         self.button_load_csv.config(state=tk.NORMAL)
         self.button__set_program_state_to_default.config(state=tk.NORMAL)
-        self.menu_file.entryconfig("Load DZN…",      state=tk.NORMAL)
-        self.menu_file.entryconfig("Load CSV…",      state=tk.NORMAL)
-        self.menu_file.entryconfig("Recent DZN files", state=tk.NORMAL)
-        self.menu_file.entryconfig("Recent CSV files", state=tk.NORMAL)
-        self.menu_tools.entryconfig("Generate DZN…", state=tk.NORMAL)
-        self.menu_tools.entryconfig("Reset",         state=tk.NORMAL)
+        self.menu_file.entryconfig( MainMenu.LOAD_DZN, state=tk.NORMAL)
+        self.menu_file.entryconfig( MainMenu.LOAD_CSV, state=tk.NORMAL)
+        self.menu_file.entryconfig( MainMenu.RCNT_DZN, state=tk.NORMAL)
+        self.menu_file.entryconfig( MainMenu.RCNT_CSV, state=tk.NORMAL)
+        self.menu_tools.entryconfig(MainMenu.GEN_DZN,  state=tk.NORMAL)
+        self.menu_tools.entryconfig(MainMenu.RESET,    state=tk.NORMAL)
         
         # Restore state-dependent controls without resetting data
         self._update_run_minizinc_button_state()
         if self.csv_file_path.get():
             self.button_visualize.config(state=tk.NORMAL)
-            self.menu_tools.entryconfig("Visualize", state=tk.NORMAL)
+            self.menu_tools.entryconfig(MainMenu.VISUALIZE, state=tk.NORMAL)
         logger.debug("Main window unlocked")
     
     def show(self) -> None:

@@ -78,7 +78,7 @@ def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', m
             figure.savefig(path, dpi=FigureProperties.DPI, bbox_inches='tight')
         return os.path.basename(path)
     except (IOError, OSError) as e:
-        logger.error(f"Failed to write {path[:-3]} file: {e}")
+        logger.error(f"Failed to write {path[:-4]} file: {e}")
         return -2  # Write error
 
 def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', material_scales: Optional[List[Figure]] = None) -> Union[int,str]:
@@ -173,7 +173,7 @@ def read_csv_file(file_path: str) -> List[str]:
         
         layout_text_array = convert_to_pharmbio_format(layout_text_array)
         
-        line_count = len(layout_text_array) - 1  # Exclude header
+        line_count = len(layout_text_array)
         logger.info(f"CSV file loaded: {file_path}, {line_count} data lines")
         return layout_text_array  # Remove header
     except (ValueError) as e:
@@ -223,6 +223,7 @@ def convert_to_pharmbio_format(layout_text_array: List[str]) -> List[str]:
                                                                  concentrations_matrix[i][j],
                                                                  ',',
                                                                  drugs_matrix[i][j] + '_' + concentrations_matrix[i][j],
+                                                                 ','
                                                                  ]))
             
             return plater_layout_text_array
@@ -260,7 +261,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     for line in layout_text_array:
         if line.strip() == '':
             continue
-        elif line == '\n':  # happens on Windows machines (to be tested)
+        elif line == '\n':  # happens on Windows machines
             continue
         
         elements = line.strip().split(',')
@@ -337,7 +338,6 @@ def path_truncate(path: str) -> str:
     
     Args:
         path: File path to display
-        label_object: Tkinter label widget to update
     
     Returns:
         truncated path

@@ -16,8 +16,8 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
-# Last Revision: January 2026
+# Version: 1.2.5
+# Last Revision: March 2026
 #
 
 
@@ -116,6 +116,18 @@ class Performance:
     """Performance-related constants."""
     COORDINATE_CACHE_SIZE = 2048
     COLORMAP_COLOR_LIMIT = 20
+
+
+class MainMenu:
+    """List of main menu fields' titles."""
+    LOAD_DZN  = "Load DZN"
+    LOAD_CSV  = "Load CSV"
+    GEN_DZN   = "Generate DZN"
+    RUN_MZN   = "Run MiniZinc"
+    VISUALIZE = "Visualize"
+    RESET     = "Reset"
+    RCNT_DZN  = "Recent DZN files"
+    RCNT_CSV  = "Recent CSV files"
 
 
 class PathsIni:

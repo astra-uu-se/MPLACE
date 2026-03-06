@@ -135,10 +135,10 @@ class CsvController:
             for i, plater_csv_content in enumerate(plater_data_list):
                 # Format the CSV content (ensure proper line endings)
                 if isinstance(plater_csv_content, str):
-                    csv_lines = [line + '\n' if not line.endswith('\n') else line 
-                               for line in plater_csv_content.splitlines()]
+                    formatted_lines = [line + '\n' if not line.endswith('\n') else line 
+                                      for line in plater_csv_content.splitlines()]
                 else:
-                    csv_lines = plater_csv_content
+                    formatted_lines = plater_csv_content
             
                 # Generate suggested filename
                 if len(plater_data_list) == 1:
@@ -147,7 +147,7 @@ class CsvController:
                     suggested_name = f"plate_{i+1}_plater.csv"
             
                 # Save with dialog
-                path = write_csv_file(csv_lines, suggested_filename=suggested_name)
+                path = write_csv_file(formatted_lines, suggested_filename=suggested_name)
             
                 if path == -1:  # User cancelled
                     logger.info(f"User cancelled PLATER save on plate {i+1}/{len(plater_data_list)}")

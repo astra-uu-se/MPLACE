@@ -197,6 +197,7 @@ class MPlaceApplication:
         if not state.csv_file_path:
             self.logger.warning("Attempted to open visualization without CSV loaded")
             tk.messagebox.showerror("Error", "Please load a CSV file first")
+            self.views['main'].unlock()
             return
         
         # Generate figure name template

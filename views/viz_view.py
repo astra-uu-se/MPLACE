@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.4
+# Version: 1.2.5
 # Last Revision: March 2026
 #
 
