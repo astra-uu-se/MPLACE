@@ -20,7 +20,7 @@
 # Coordinates file selection and writing through native dialog interfaces.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.2.6
 # Last Revision: March 2026
 #
 
@@ -58,7 +58,7 @@ class CsvController:
             suggested_name: Suggested filename (can include or exclude .csv extension)
         
         Returns:
-            Path where file was saved, or empty string if cancelled, or '-2' if write failed
+            Path where file was saved, or '-1' if cancelled, or '-2' if write failed
         
         Raises:
             IOError: If file write fails
@@ -78,7 +78,7 @@ class CsvController:
         
             if result == -1:
                 logger.info("PharmBio CSV export cancelled by user")
-                return ""
+                return "-1"
             elif result == -2:
                 logger.error("Failed to write PharmBio CSV file")
                 return "-2"
@@ -106,7 +106,7 @@ class CsvController:
             cols: Number of plate columns
         
         Returns:
-            List of paths where files were saved (empty list if cancelled)
+            List of paths where files were saved, or ['-1'] if cancelled
         
         Raises:
             ValueError: If conversion fails
@@ -152,12 +152,12 @@ class CsvController:
                 if path == -1:  # User cancelled
                     logger.info(f"User cancelled PLATER save on plate {i+1}/{len(plater_data_list)}")
                     if i == 0:
-                        return []  # Cancel everything if first file cancelled
+                        return ['-1']  # Cancel everything if first file cancelled
                     else:
                         break  # Stop saving remaining files
                 elif path == -2:  # Write error
                     logger.error(f"Failed to write PLATER CSV file {i+1}")
-                    return []
+                    return ['-2']
             
                 saved_paths.append(path)
                 logger.info(f"PLATER CSV {i+1}/{len(plater_data_list)} saved: {path}")

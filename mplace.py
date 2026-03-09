@@ -16,10 +16,11 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.2.6
 # Last Revision: March 2026
 
 import tkinter as tk
+from tkinter import messagebox
 import logging
 import sys
 from pathlib import Path
@@ -62,12 +63,6 @@ def initialize_application_state() -> ApplicationState:
         Initialized ApplicationState instance
     """
     state = ApplicationState()
-    # Set default paths from constants
-    state.minizinc_path = PathsIni.MINIZINC
-    state.plaid_path = PathsIni.PLAID
-    state.plaid_mpc_path = PathsIni.PLAID_MPC
-    state.compd_path = PathsIni.COMPD
-    state.compd_mpc_path = PathsIni.COMPD_MPC
     
     logger = logging.getLogger(__name__)
     logger.info("Application state initialized")
@@ -177,9 +172,9 @@ class MPlaceApplication:
             startup_warnings.append("Solver configuration for COMPD is not loaded. Default configuration (Gecode, 1 thread) will be used.")
         
         if len(startup_warnings) == 1:
-            tk.messagebox.showwarning("Warning", startup_warnings[0])
+            messagebox.showwarning("Warning", startup_warnings[0])
         elif len(startup_warnings) > 1:
-            tk.messagebox.showwarning("Warnings", "\n\n".join(startup_warnings))
+            messagebox.showwarning("Warnings", "\n\n".join(startup_warnings))
     
     def _open_dzn_window(self) -> None:
         """Open the DZN generation window."""
@@ -196,7 +191,7 @@ class MPlaceApplication:
         # Check if CSV is loaded
         if not state.csv_file_path:
             self.logger.warning("Attempted to open visualization without CSV loaded")
-            tk.messagebox.showerror("Error", "Please load a CSV file first")
+            messagebox.showerror("Error", "Please load a CSV file first")
             self.views['main'].unlock()
             return
         

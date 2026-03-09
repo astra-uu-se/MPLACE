@@ -17,8 +17,8 @@
 # Centralizes all application state that was previously scattered across tk.StringVar variables.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
-# Last Revision: January 2026
+# Version: 1.2.6
+# Last Revision: March 2026
 #
 
 from dataclasses import dataclass, field
@@ -42,11 +42,6 @@ class ApplicationState:
         num_cols: Number of columns in the microplate (as string for form compatibility)
         control_names: String representation of control names list
         use_compd: Whether to use COMPD model (True) or PLAID model (False)
-        minizinc_path: Path to MiniZinc executable
-        plaid_path: Path to PLAID model file
-        compd_path: Path to COMPD model file
-        plaid_mpc_path: Path to PLAID solver configuration
-        compd_mpc_path: Path to COMPD solver configuration
         recent_dzn: List of recently opened DZN file paths
         recent_csv: List of recently opened CSV file paths
     """
@@ -62,13 +57,6 @@ class ApplicationState:
     
     # Model selection
     use_compd: bool = False
-    
-    # Configuration paths (loaded from paths.ini)
-    minizinc_path: str = ''
-    plaid_path: str = ''
-    compd_path: str = ''
-    plaid_mpc_path: str = ''
-    compd_mpc_path: str = ''
     
     # Recent files
     recent_dzn: List[str] = field(default_factory=list)

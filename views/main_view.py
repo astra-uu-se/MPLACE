@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.2.6
 # Last Revision: March 2026
 #
 
@@ -178,7 +178,7 @@ class MainView:
             self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD, state=tk.DISABLED,
             text=Messages.BUTTON_VISUALIZE, command=self._on_visualize
         )
-        self.button__set_program_state_to_default = ttk.Button(
+        self.button_set_program_state_to_default = ttk.Button(
             self.frame_matplotlib, width=UI.BUTTON_WIDTH_STANDARD,
             text=Messages.BUTTON_RESET, command=self._set_program_state_to_default_call
         )
@@ -193,7 +193,7 @@ class MainView:
         self.label_cols.grid(row=0, column=2, columnspan=1, sticky="w")
         self.entry_cols.grid(row=0, column=3, columnspan=1, sticky="w")
         self.button_visualize.grid(row=1, column=0, columnspan=2, sticky="ew")
-        self.button__set_program_state_to_default.grid(row=1, column=2, columnspan=2, sticky="ew")
+        self.button_set_program_state_to_default.grid(row=1, column=2, columnspan=2, sticky="ew")
     
     def _apply_config_defaults(self) -> None:
         """
@@ -349,7 +349,7 @@ class MainView:
     
     def _on_load_dzn(self) -> None:
         """Handle Load DZN button click."""
-        path = filedialog.askopenfilename(title='open dzn file', filetypes=FileTypes.DZN_FILES)
+        path = filedialog.askopenfilename(title='Open dzn file', filetypes=FileTypes.DZN_FILES)
         if path:
             try:
                 path_show(path, self.label_dzn_loaded)
@@ -369,9 +369,7 @@ class MainView:
     def _on_run_minizinc(self) -> None:
         """Handle Run Model button click."""
         from ui.layout_format_dialog import ask_layout_export_format
-        from models.constants import FileTypes
-        import os
-    
+        
         model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
         logger.info(f"Running {model_name} model...")
     
@@ -380,6 +378,7 @@ class MainView:
         self.root.update_idletasks()
     
         try:
+            self.lock()
             dzn_path = self.dzn_file_path.get()
             use_compd = self.use_compd_flag.get()
         
@@ -388,7 +387,16 @@ class MainView:
                 output = self.minizinc_controller.run_compd_model(dzn_path)
             else:
                 output = self.minizinc_controller.run_plaid_model(dzn_path)
+            
+        except Exception as e:
+            self.label_csv_loaded.config(text='MiniZinc execution failed')
+            logger.error(f"MiniZinc execution failed: {e}")
+            messagebox.showerror("Model Execution Error", 
+                                 f"Failed to run {model_name} model.\n\n{str(e)}")
         
+        self.unlock()
+            
+        try:
             # Extract CSV from output
             csv_lines = self.minizinc_controller.extract_csv_from_output(output)
         
@@ -404,7 +412,6 @@ class MainView:
             
             self.lock()
             chosen_format = ask_layout_export_format(self.root, file_formats)
-            self.unlock()
             
             if not chosen_format:
                 # User cancelled
@@ -426,7 +433,7 @@ class MainView:
         
             # Check if csv_path is valid (not -1 or -2 error codes, and not empty string)
             if csv_path and isinstance(csv_path, str) and csv_path not in ['', '-1', '-2']:
-                self._refresh_recent_menus_path(csv_path)
+                self._load_csv_into_ui(csv_path)
                 self._add_to_recent(csv_path, is_dzn=False)
                 logger.info(f"MiniZinc execution completed: {os.path.basename(csv_path)}")
             else:
@@ -438,18 +445,25 @@ class MainView:
                     messagebox.showerror("File Write Error", "Could not write CSV file to disk.")
             
         except Exception as e:
-            self.label_csv_loaded.config(text='MiniZinc execution failed')
-            logger.error(f"MiniZinc execution failed: {e}")
-            messagebox.showerror("Model Execution Error", 
-                               f"Failed to run {model_name} model.\n\n{str(e)}")
+            # Export failed after successful model run
+            self.label_csv_loaded.config(text='Export failed after successful model run')
+            logger.error(f"CSV export failed after successful model run: {e}")
+            messagebox.showerror("Export Error", 
+                                 f"Model ran successfully but export failed.\n\n{str(e)}")
+        
+        self.unlock()
         self.root.focus_force()
     
     def _on_load_csv(self) -> None:
         """Handle Load CSV button click."""
-        path = filedialog.askopenfilename(title='open csv file', filetypes=FileTypes.CSV_FILES)
+        path = filedialog.askopenfilename(title='Open csv file', filetypes=FileTypes.CSV_FILES)
         if path:
             try:
-                self._refresh_recent_menus_path(path)
+                # Validate CSV loads successfully first
+                self.controller.load_csv_file(path)
+                
+                # Only update UI after successful load
+                self._load_csv_into_ui(path)
                 self._add_to_recent(path, is_dzn=False)
             except Exception as e:
                 logger.error(f"CSV loading failed: {path}, error: {e}")
@@ -533,7 +547,7 @@ class MainView:
             self._update_run_minizinc_button_state()
             self._add_to_recent(path, True)
         else:
-            self._refresh_recent_menus_path(path)
+            self._load_csv_into_ui(path)
             self._add_to_recent(path, False)
     
     def _refresh_recent_menus(self) -> None:
@@ -568,14 +582,14 @@ class MainView:
             self._save_recents()
             self._refresh_recent_menus()
     
-    def _refresh_recent_menus_path(self, path: str) -> None:
+    def _load_csv_into_ui(self, path: str) -> None:
         """Update CSV path and enable visualize button."""
         if not path:
             raise ValueError("CSV path cannot be empty")
         path_show(path, self.label_csv_loaded)
         self.csv_file_path.set(path)
         self.button_visualize.config(state=tk.NORMAL)
-        self.menu_tools.entryconfig("Visualize", state=tk.NORMAL)
+        self.menu_tools.entryconfig(MainMenu.VISUALIZE, state=tk.NORMAL)
     
         self.controller.load_csv_file(path)
     
@@ -615,7 +629,7 @@ class MainView:
         
         # Disable visualization button (no CSV loaded)
         self.button_visualize.config(state=tk.DISABLED)
-        self.menu_tools.entryconfig("Visualize", state=tk.DISABLED)
+        self.menu_tools.entryconfig(MainMenu.VISUALIZE, state=tk.DISABLED)
         
         # Reapply config constraints (radio states + Run button state)
         self._apply_config_defaults()
@@ -633,7 +647,7 @@ class MainView:
         self.button_load_csv.config(state=tk.DISABLED)
         self.button_run_minizinc.config(state=tk.DISABLED)
         self.button_visualize.config(state=tk.DISABLED)
-        self.button__set_program_state_to_default.config(state=tk.DISABLED)
+        self.button_set_program_state_to_default.config(state=tk.DISABLED)
         
         # Disable menu entries
         self.menu_file.entryconfig( MainMenu.LOAD_DZN,  state=tk.DISABLED)
@@ -660,7 +674,7 @@ class MainView:
         self.button_generate_dzn.config(state=tk.NORMAL)
         self.button_load_dzn.config(state=tk.NORMAL)
         self.button_load_csv.config(state=tk.NORMAL)
-        self.button__set_program_state_to_default.config(state=tk.NORMAL)
+        self.button_set_program_state_to_default.config(state=tk.NORMAL)
         self.menu_file.entryconfig( MainMenu.LOAD_DZN, state=tk.NORMAL)
         self.menu_file.entryconfig( MainMenu.LOAD_CSV, state=tk.NORMAL)
         self.menu_file.entryconfig( MainMenu.RCNT_DZN, state=tk.NORMAL)

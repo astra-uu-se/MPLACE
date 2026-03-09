@@ -17,8 +17,8 @@
 # Handles validation and generation of DZN files.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
-# Last Revision: January 2026
+# Version: 1.2.6
+# Last Revision: March 2026
 #
 
 import logging
@@ -74,9 +74,6 @@ class DznController:
         errors.extend(dim_errors)
         
         # Parse and validate compounds - initialize to empty dict
-        compounds_dict = {}
-        parsing_errors = []
-        
         compounds_dict, parsing_errors = parse_materials_dict(data.compounds_dict)
         errors.extend(parsing_errors)
         
@@ -85,9 +82,6 @@ class DznController:
             errors.extend(schema_errors)
         
         # Parse and validate controls - initialize to empty dict
-        controls_dict = {}
-        control_parsing_errors = []
-        
         controls_dict, control_parsing_errors = parse_materials_dict(data.controls_dict)
         errors.extend(control_parsing_errors)
         
