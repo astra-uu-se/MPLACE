@@ -57,7 +57,7 @@ def setup_logging() -> None:
 
 def initialize_application_state() -> ApplicationState:
     """
-    Initialize application state with default paths.
+    Initialize application state.
     
     Returns:
         Initialized ApplicationState instance

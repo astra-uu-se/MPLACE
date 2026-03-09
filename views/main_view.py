@@ -349,7 +349,7 @@ class MainView:
     
     def _on_load_dzn(self) -> None:
         """Handle Load DZN button click."""
-        path = filedialog.askopenfilename(title='Open dzn file', filetypes=FileTypes.DZN_FILES)
+        path = filedialog.askopenfilename(title='Open DZN file', filetypes=FileTypes.DZN_FILES)
         if path:
             try:
                 path_show(path, self.label_dzn_loaded)
@@ -393,8 +393,9 @@ class MainView:
             logger.error(f"MiniZinc execution failed: {e}")
             messagebox.showerror("Model Execution Error", 
                                  f"Failed to run {model_name} model.\n\n{str(e)}")
-        
-        self.unlock()
+            self.unlock()
+            self.root.focus_force()
+            return
             
         try:
             # Extract CSV from output
@@ -410,13 +411,14 @@ class MainView:
                 (FileTypes.CSV_PLATER, "CSV (PLATER) - plate-shaped format for R package")
             ]
             
-            self.lock()
             chosen_format = ask_layout_export_format(self.root, file_formats)
             
             if not chosen_format:
                 # User cancelled
                 self.label_csv_loaded.config(text=original_text)
                 logger.info("User cancelled format selection")
+                self.unlock()
+                self.root.focus_force()
                 return
         
             # Save in chosen format
@@ -456,12 +458,9 @@ class MainView:
     
     def _on_load_csv(self) -> None:
         """Handle Load CSV button click."""
-        path = filedialog.askopenfilename(title='Open csv file', filetypes=FileTypes.CSV_FILES)
+        path = filedialog.askopenfilename(title='Open CSV file', filetypes=FileTypes.CSV_FILES)
         if path:
             try:
-                # Validate CSV loads successfully first
-                self.controller.load_csv_file(path)
-                
                 # Only update UI after successful load
                 self._load_csv_into_ui(path)
                 self._add_to_recent(path, is_dzn=False)
@@ -586,12 +585,11 @@ class MainView:
         """Update CSV path and enable visualize button."""
         if not path:
             raise ValueError("CSV path cannot be empty")
+        self.controller.load_csv_file(path)
         path_show(path, self.label_csv_loaded)
         self.csv_file_path.set(path)
         self.button_visualize.config(state=tk.NORMAL)
         self.menu_tools.entryconfig(MainMenu.VISUALIZE, state=tk.NORMAL)
-    
-        self.controller.load_csv_file(path)
     
         logger.info(f"CSV path updated: {path}")
     
