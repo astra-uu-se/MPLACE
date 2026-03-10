@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.3.0
 # Last Revision: March 2026
 #
 
@@ -72,15 +72,10 @@ class DznView:
         self.on_generation_complete = on_generation_complete
         self.on_window_closed = on_window_closed
         
-        # get the coordinates for the window position
-        x = self.parent.winfo_rootx() + WindowConfig.DZN_WINDOW_X
-        y = self.parent.winfo_rooty() + WindowConfig.DZN_WINDOW_Y
-        
         # Create window
         self.window = tk.Toplevel(self.parent)
         self.window.title(WindowConfig.TITLE_DZN_GENERATOR)
         self.window.resizable(False, False)
-        self.window.geometry(f'+{x}+{y}')
         self.window.protocol('WM_DELETE_WINDOW', self._on_close)
         self.window.withdraw()
         
@@ -372,6 +367,13 @@ class DznView:
         """Show the DZN generation window."""
         self.window.deiconify()
         self.window.grab_set()
+        
+        # get the coordinates for the window position
+        x = self.parent.winfo_rootx() + WindowConfig.DZN_WINDOW_X
+        y = self.parent.winfo_rooty() + WindowConfig.DZN_WINDOW_Y
+        
+        self.window.geometry(f'+{x}+{y}')
+        
         logger.debug("DZN window shown")
     
     def hide(self) -> None:

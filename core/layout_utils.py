@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to visualization of layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
-# Last Revision: January 2026
+# Version: 1.3.0
+# Last Revision: March 2026
 #
 
 import logging
@@ -126,7 +126,8 @@ def find_all_plates_concentrations(text_array: List[str]) -> Tuple[Dict[str,List
     """Scans the content of CSV file and returns the list of plate names and concentrations for each material
     
     Args:
-        value: List of string values
+        text_array: List of CSV data lines (excluding header), each formatted as
+                    'plateID,well,cmpdname,CONCuM,cmpdnum,VOLuL'
         
     Returns:
         Two dictionaries as a tuple

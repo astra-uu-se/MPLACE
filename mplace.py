@@ -16,7 +16,7 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.6
+# Version: 1.3.0
 # Last Revision: March 2026
 
 import tkinter as tk
@@ -42,6 +42,9 @@ from models.application_state import ApplicationState
 # Constants
 from models.constants import PathsIni, Messages
 
+
+logger = logging.getLogger(__name__)    
+
 def setup_logging() -> None:
     """Configure application-wide logging."""
     logging.basicConfig(
@@ -54,19 +57,6 @@ def setup_logging() -> None:
     )
     logger = logging.getLogger(__name__)
     logger.info("MPLACE application starting")
-
-def initialize_application_state() -> ApplicationState:
-    """
-    Initialize application state.
-    
-    Returns:
-        Initialized ApplicationState instance
-    """
-    state = ApplicationState()
-    
-    logger = logging.getLogger(__name__)
-    logger.info("Application state initialized")
-    return state
 
 class MPlaceApplication:
     """
@@ -82,18 +72,16 @@ class MPlaceApplication:
     """
     
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.logger.info("Initializing MPlaceApplication")
+        logger.info("Initializing MPlaceApplication")
         
         self.root = tk.Tk()
-        self.state = initialize_application_state()
+        self.state = ApplicationState()
+        logger.info("Application state initialized")
+        
         self.controllers = self._create_controllers()
         self.views = self._create_views()
         
-        # Display startup warnings for missing configurations
-        self._show_startup_warnings()
-        
-        self.logger.info("MPlaceApplication initialized successfully")
+        logger.info("MPlaceApplication initialized successfully")
     
     
     def _create_controllers(self) -> dict:
@@ -111,7 +99,7 @@ class MPlaceApplication:
             'viz': VisualizationController()
         }
         
-        self.logger.debug(f"Created {len(controllers)} controllers")
+        logger.debug(f"Created {len(controllers)} controllers")
         return controllers
     
     def _create_views(self) -> dict:
@@ -152,7 +140,7 @@ class MPlaceApplication:
             'viz': viz_view
         }
         
-        self.logger.debug(f"Created {len(views)} views")
+        logger.debug(f"Created {len(views)} views")
         return views
     
     def _show_startup_warnings(self) -> None:
@@ -178,19 +166,19 @@ class MPlaceApplication:
     
     def _open_dzn_window(self) -> None:
         """Open the DZN generation window."""
-        self.logger.info("Opening DZN generation window")
+        logger.info("Opening DZN generation window")
         self.views['main'].lock()       # ← lock before opening
         self.views['dzn'].show()
     
     def _open_viz_window(self) -> None:
         """Open the visualization window."""
-        self.logger.info("Opening visualization window")
+        logger.info("Opening visualization window")
         self.views['main'].lock()
         state = self.state
         
         # Check if CSV is loaded
         if not state.csv_file_path:
-            self.logger.warning("Attempted to open visualization without CSV loaded")
+            logger.warning("Attempted to open visualization without CSV loaded")
             messagebox.showerror("Error", "Please load a CSV file first")
             self.views['main'].unlock()
             return
@@ -224,7 +212,7 @@ class MPlaceApplication:
             cols: Number of columns
             controls: Control names string
         """
-        self.logger.info(f"DZN generated: {file_path}")
+        logger.info(f"DZN generated: {file_path}")
         
         # Update main view
         self.views['main'].update_after_dzn_generation(
@@ -236,8 +224,13 @@ class MPlaceApplication:
     
     def run(self) -> None:
         """Start the application main loop."""
-        self.logger.info("Starting MPLACE application main loop")
+        logger.info("Starting MPLACE application main loop")
+
+        # Display startup warnings for missing configurations
+        self.root.after(1, self._show_startup_warnings())
+        
         self.views['main'].show()
+                
 
 def main():
     """Application entry point."""

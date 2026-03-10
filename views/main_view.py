@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.6
+# Version: 1.3.0
 # Last Revision: March 2026
 #
 
@@ -31,7 +31,8 @@ from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
 from controllers.csv_controller import CsvController
 from models.constants import PlateDefaults, MainMenu, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
-from core.io_utils import path_show
+from core.layout_utils import find_all_plates_concentrations
+from ui.ui_utils import path_show
 from ui.ui_validators import numeric_entry_callback
 
 logger = logging.getLogger(__name__)
@@ -414,26 +415,29 @@ class MainView:
             csv_path = None
             if chosen_format == FileTypes.CSV_PLATER:
                 # PLATER format
+                plates, _ = find_all_plates_concentrations(csv_lines[1:])
+    
+                if len(plates) > 1:
+                    tk.messagebox.showinfo("Information",f"There are {len(plates)} plates. For each plate there will be a corresponding save file dialogue.")
+                
+                logger.info(f"Generated {len(plates)} plates to convert and save.")
+                
                 rows = self.num_rows.get()
                 cols = self.num_cols.get()
-                paths = self.csv_controller.export_plater(csv_lines, rows, cols)
-                csv_path = paths[0] if paths else ""
+                paths = self.csv_controller.export_plater(csv_lines[1:], rows, cols)
+                csv_path = paths[0] if paths else None
             else:
                 # PharmBio format (default) - pass suggested filename
                 csv_path = self.csv_controller.export_pharmbio(csv_lines, suggested_csv_name)
         
             # Check if csv_path is valid (not -1 or -2 error codes, and not empty string)
-            if csv_path and isinstance(csv_path, str) and csv_path not in ['', '-1', '-2']:
-                self._load_csv_into_ui(csv_path)
+            if csv_path:
+                self._load_csv_into_ui(csv_path if isinstance(csv_path, str) else csv_path[0])
                 self._add_to_recent(csv_path, is_dzn=False)
                 logger.info(f"MiniZinc execution completed: {os.path.basename(csv_path)}")
             else:
                 self.label_csv_loaded.config(text=original_text)
-                if csv_path in ['-1', '']:
-                    logger.info("User cancelled CSV save")
-                elif csv_path == '-2':
-                    logger.error("Failed to write CSV file")
-                    messagebox.showerror("File Write Error", "Could not write CSV file to disk.")
+                logger.info("User cancelled CSV save")
             
         except Exception as e:
             # Export failed after successful model run
@@ -442,8 +446,9 @@ class MainView:
             messagebox.showerror("Export Error", 
                                  f"Model ran successfully but export failed.\n\n{str(e)}")
         
-        self.unlock()
-        self.root.focus_force()
+        finally:
+            self.unlock()
+            self.root.focus_force()
     
     def _on_load_csv(self) -> None:
         """Handle Load CSV button click."""

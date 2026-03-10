@@ -16,7 +16,7 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.6
+# Version: 1.3.0
 # Last Revision: March 2026
 #
 
@@ -216,10 +216,11 @@ class PlaterFormat:
     CONCENTRATIONS_LABEL = "Concentration"
 
 class FigureProperties:
-    DPI = 300 # DPI for saving layouts into files
-    DPI_DISPLAY = 105 # Reference DPI that will be displayed on the screen (what sizes were originally designed for)
-    DPI_MPL_DEFAULT = 100 # Default DPI when a figure is created by matplotlib
-    # When converting figure sizes we take the referene default DPI and the desired DPI and do the adjusetment with this ration:
+    """DPI and scaling constants for figure rendering and export."""
+    DPI = 300           # DPI for saving layouts to file
+    DPI_DISPLAY = 105   # Reference DPI for on-screen display (original design target)
+    DPI_MPL_DEFAULT = 100  # Default DPI when matplotlib creates a figure
+    # Scale factor to convert between display DPI and matplotlib default DPI:
     DPI_RATIO = DPI_DISPLAY / DPI_MPL_DEFAULT
 
 class Validation:

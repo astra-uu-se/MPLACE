@@ -20,14 +20,17 @@
 # Coordinates file selection and writing through native dialog interfaces.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.6
+# Version: 1.3.0
 # Last Revision: March 2026
 #
 
 import logging
+from tkinter import filedialog
 from typing import List
+
 from models.dto import CSVConversionRequest
-from core.io_utils import write_csv_file, convert_pharmbio_to_plater
+from models.constants import FileTypes
+from core.io_utils import save_csv_to_path, convert_pharmbio_to_plater
 
 logger = logging.getLogger(__name__)
 
@@ -69,23 +72,23 @@ class CsvController:
         logger.info(f"Exporting PharmBio CSV with suggested name: {suggested_name}")
     
         # Ensure suggested_name doesn't have .csv extension (write_csv_file adds it)
-        if suggested_name.endswith('.csv'):
+        if suggested_name.endswith('.'+FileTypes.CSV):
             suggested_name = suggested_name[:-4]
-    
-        try:
-            # write_csv_file returns: path (string), -1 (cancelled), or -2 (error)
-            result = write_csv_file(csv_lines, suggested_filename=suggested_name)
         
-            if result == -1:
-                logger.info("PharmBio CSV export cancelled by user")
-                return "-1"
-            elif result == -2:
-                logger.error("Failed to write PharmBio CSV file")
-                return "-2"
-            else:
-                logger.info(f"PharmBio CSV saved to: {result}")
-                return result
-            
+        path = filedialog.asksaveasfilename(
+                    defaultextension='.'+FileTypes.CSV,
+                    filetypes=FileTypes.CSV_FILES,
+                    initialfile=suggested_name
+                )
+        
+        if not path:
+            logger.info("PharmBio CSV export cancelled by user")
+            return None
+        
+        try:
+            save_csv_to_path(csv_lines, path)
+            logger.info(f"PharmBio CSV saved to: {path}")
+            return path
         except (IOError, OSError) as e:
             logger.error(f"Failed to export PharmBio CSV: {e}")
             raise IOError(f"Could not write CSV file: {e}") from e
@@ -117,61 +120,57 @@ class CsvController:
             
         logger.info("Exporting PLATER CSV format")
     
-        try:
-            # Create conversion request
-            conversion_input = CSVConversionRequest(
-                csv_lines=csv_lines,
-                rows=rows,
-                cols=cols
+        # Create conversion request
+        conversion_input = CSVConversionRequest(
+            csv_lines=csv_lines,
+            rows=rows,
+            cols=cols
+        )
+        
+        # Convert - this returns list of CSV CONTENT strings, not paths!
+        plater_data_list = convert_pharmbio_to_plater(conversion_input)
+        logger.info(f"Generated {len(plater_data_list)} plates to convert and save.")
+        
+        saved_paths = []
+        
+        # Save each PLATER CSV file with user dialog
+        for i, plater_csv_content in enumerate(plater_data_list):
+            # Generate suggested filename
+            if len(plater_data_list) == 1:
+                suggested_name = "plate_plater.csv"
+            else:
+                suggested_name = f"plate_{i+1}_plater.csv"
+            
+            # Save with dialog
+            path = filedialog.asksaveasfilename(
+                defaultextension='.'+FileTypes.CSV,
+                filetypes=FileTypes.CSV_FILES,
+                initialfile=suggested_name
             )
-        
-            # Convert - this returns list of CSV CONTENT strings, not paths!
-            plater_data_list = convert_pharmbio_to_plater(conversion_input)
-            logger.info(f"Generated {len(plater_data_list)} plates to convert and save.")
-        
-            saved_paths = []
-        
-            # Save each PLATER CSV file with user dialog
-            for i, plater_csv_content in enumerate(plater_data_list):
+            
+            if not path:
                 # Format the CSV content (ensure proper line endings)
-                if isinstance(plater_csv_content, str):
-                    formatted_lines = [line + '\n' if not line.endswith('\n') else line 
-                                      for line in plater_csv_content.splitlines()]
+                logger.info(f"User cancelled PLATER save on plate {i+1}/{len(plater_data_list)}")
+                if i == 0:
+                    return None   # cancelled before saving anything
                 else:
-                    formatted_lines = plater_csv_content
+                    break         # partial save — return what was saved so far
+                                    
+            if isinstance(plater_csv_content, str):
+                formatted_lines = [line + '\n' if not line.endswith('\n') else line 
+                                   for line in plater_csv_content.splitlines()]
+            else:
+                formatted_lines = plater_csv_content
+
+            try:
+                save_csv_to_path(formatted_lines, path)
+            except (IOError, OSError) as e:
+                logger.error(f"Failed to write PLATER CSV file {i+1}: {e}")
+                raise IOError(f"File write error: {e}") from e
             
-                # Generate suggested filename
-                if len(plater_data_list) == 1:
-                    suggested_name = "plate_plater.csv"
-                else:
-                    suggested_name = f"plate_{i+1}_plater.csv"
-            
-                # Save with dialog
-                path = write_csv_file(formatted_lines, suggested_filename=suggested_name)
-            
-                if path == -1:  # User cancelled
-                    logger.info(f"User cancelled PLATER save on plate {i+1}/{len(plater_data_list)}")
-                    if i == 0:
-                        return ["-1"]  # Cancel everything if first file cancelled
-                    else:
-                        break  # Stop saving remaining files
-                elif path == -2:  # Write error
-                    logger.error(f"Failed to write PLATER CSV file {i+1}")
-                    return ["-2"]
-            
-                saved_paths.append(path)
-                logger.info(f"PLATER CSV {i+1}/{len(plater_data_list)} saved: {path}")
+            saved_paths.append(path)
+            logger.info(f"PLATER CSV {i+1}/{len(plater_data_list)} saved: {path}")
         
-            logger.info(f"PLATER CSV export completed: {len(saved_paths)} files saved")
-            return saved_paths
-        
-        except ValueError as e:
-            logger.error(f"PLATER conversion failed: {e}")
-            raise
-        except (IOError, OSError) as e:
-            logger.error(f"Failed to write PLATER CSV file: {e}")
-            raise IOError(f"File write error: {e}") from e
-        except Exception as e:
-            logger.error(f"Unexpected error during PLATER export: {e}")
-            raise RuntimeError(f"Unexpected error: {e}") from e
+        logger.info(f"PLATER CSV export completed: {len(saved_paths)} files saved")
+        return saved_paths
     

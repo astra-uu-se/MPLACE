@@ -17,12 +17,13 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.3.0
 # Last Revision: March 2026
 #
 
+import os
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import pyplot
@@ -35,7 +36,7 @@ from models.csv_data import VisualizationState
 from models.constants import (
     Visualization, UI, WindowConfig, Messages, FileTypes, FigureProperties
 )
-from core.io_utils import write_figure, write_figures_in_pdf, path_truncate
+from core.io_utils import save_figure_to_path, save_figures_to_pdf, path_truncate
 from ui.layout_format_dialog import ask_layout_export_format
 
 logger = logging.getLogger(__name__)
@@ -358,27 +359,30 @@ class VizView:
         else:
             self._save_multiple_figures()
     
+    
     def _save_single_figure(self) -> None:
         """Save single figure with format choice."""
         figure, filename_template = self.figures_to_save[0]
-        
-        result = write_figure(
-            figure, 
-            FileTypes.FIG_FILES, 
-            filename_template, 
-            self.material_scales
+
+        base = os.path.splitext(os.path.basename(filename_template))[0]
+        path = filedialog.asksaveasfilename(
+            defaultextension='.png',
+            filetypes=FileTypes.FIG_FILES,
+            initialfile=base + '.png'
         )
-        
-        if result == -1:
+        if not path:
             logger.info("User cancelled figure save")
             return
-        elif result == -2:
+
+        try:
+            save_figure_to_path(figure, path, self.material_scales)
+        except (IOError, OSError):
             logger.error("Failed to write figure file")
             messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
             return
-        
-        messagebox.showinfo("Saving Complete", f"Successfully saved layout file: {result}")
-        logger.info(f"Successfully saved layout file: {result}")
+
+        messagebox.showinfo("Saving Complete", f"Successfully saved layout file: {os.path.basename(path)}")
+        logger.info(f"Successfully saved layout file: {path}")
     
     def _save_multiple_figures(self) -> None:
         """Save multiple figures as PNG or PDF."""
@@ -399,55 +403,65 @@ class VizView:
             self._save_as_multiple_png()
         elif file_format == FileTypes.PDF:
             self._save_as_single_pdf()
-    
-    def _save_as_multiple_png(self) -> None:
-        """Save each figure as separate PNG."""
-        messagebox.showinfo(
-            "Information",
-            f"There are {len(self.figures_to_save)} plates. For each plate there will be a corresponding save file dialogue."
-        )
         
+    def _save_as_multiple_png(self) -> None:
+        """Save each figure as a separate PNG."""
         saved_paths = []
+        n = len(self.figures_to_save)
+
         for i, (figure, filename_template) in enumerate(self.figures_to_save):
-            result = write_figure(figure, FileTypes.PNG_FILES, filename_template)
-            
-            if result == -1:
-                logger.info(f"User cancelled saving on plate {i+1}/{len(self.figures_to_save)}")
+            base = os.path.splitext(os.path.basename(filename_template))[0]
+            path = filedialog.asksaveasfilename(
+                title=f"Save plate {i + 1} of {n}",
+                defaultextension='.png',
+                filetypes=FileTypes.PNG_FILES,
+                initialfile=base + '.png'
+            )
+            if not path:
+                logger.info(f"User cancelled saving on plate {i+1}/{n}")
                 return
-            elif result == -2:
+
+            try:
+                save_figure_to_path(figure, path)
+            except (IOError, OSError):
                 logger.error("Failed to write figure file")
                 messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
                 return
-            
-            saved_paths.append(result)
-        
+
+            saved_paths.append(os.path.basename(path))
+
         file_list = '\n'.join(f"• {p}" for p in saved_paths)
         messagebox.showinfo(
             "Saving Complete",
-            f"Successfully saved {len(self.figures_to_save)} layout files:\n\n{file_list}\n\n"
+            f"Successfully saved {n} layout files:\n\n{file_list}\n\n"
         )
-        logger.info(f"Multi-file layout export completed: {len(self.figures_to_save)} files")
+        logger.info(f"Multi-file layout export completed: {n} files")
+    
     
     def _save_as_single_pdf(self) -> None:
-        """Save all figures in single PDF."""
+        """Save all figures in a single PDF."""
         _, template = self.figures_to_save[0]
-        
-        result = write_figures_in_pdf(
-            self.figures_to_save, 
-            template, 
-            self.material_scales
+        base = os.path.splitext(os.path.basename(template))[0]
+
+        path = filedialog.asksaveasfilename(
+            defaultextension='.pdf',
+            filetypes=FileTypes.PDF_FILES,
+            initialfile=base + '.pdf'
         )
-        
-        if result == -1:
+        if not path:
             logger.info("User cancelled PDF save")
             return
-        elif result == -2:
+
+        try:
+            save_figures_to_pdf(self.figures_to_save, path, self.material_scales)
+        except (IOError, OSError):
             logger.error("Failed to write PDF file")
             messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
             return
-        
-        messagebox.showinfo("Saving Complete", f"Successfully saved layout file: {result}")
-        logger.info(f"Successfully saved PDF: {result}")
+
+        messagebox.showinfo("Saving Complete", f"Successfully saved layout file: {os.path.basename(path)}")
+        logger.info(f"Successfully saved PDF: {path}")
+    
     
     def _cleanup_and_close(self) -> None:
         """Cleanup matplotlib resources and close window."""

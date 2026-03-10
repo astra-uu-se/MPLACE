@@ -17,7 +17,7 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.2
+# Version: 1.3.0
 # Last Revision: January 2026
 #
 
@@ -25,6 +25,7 @@ import logging
 import ast
 import math
 import numpy as np
+import matplotlib as mpl
 from matplotlib import pyplot as plt
 from typing import List, Dict, Any, Union
 
@@ -48,6 +49,12 @@ class VisualizationController:
     def __init__(self):
         """Initialize visualization controller."""
         logger.info("VisualizationController initialized")
+        
+        self._COLORMAPS = [
+            mpl.colormaps['tab20'],
+            mpl.colormaps['tab20b'],
+            mpl.colormaps['tab20c'],
+        ]
         
         # Assert bounds
         assert Visualization.CONCENTRATION_SIZE_MIN < Visualization.CONCENTRATION_SIZE_MAX
@@ -210,9 +217,9 @@ class VisualizationController:
                 continue
             material = line[1]
             if material in materials:
-                materials[material].append([line[0]] + line[1:])
+                materials[material].append(line[:])
             else:
-                materials[material] = [[line[0]] + line[1:]]
+                materials[material] = [line[:]]
     
         # Plot each material
         for material in materials:
@@ -303,8 +310,6 @@ class VisualizationController:
                     num_rows,
                     num_cols
                 ) for concentration in concentrations]
-        max_conc = max(float(k) if isinstance(k, str) else k for k in alpha_mapping.keys())
-        
         # Create scatter plot showing size gradient with consistent proportions
         if num_conc == 1:
             x_positions = np.arange(1) + 0.5
@@ -428,11 +433,7 @@ class VisualizationController:
         material_colors = {}
         
         # Get the three tab20 variant colormaps
-        colormaps = [
-                plt.get_cmap('tab20'),   # Materials 0-19
-                plt.get_cmap('tab20b'),  # Materials 20-39
-                plt.get_cmap('tab20c')   # Materials 40-59
-            ]
+        colormaps = self._COLORMAPS
         num_colors = Performance.COLORMAP_COLOR_LIMIT
         
         for idx, material in enumerate(concentrations_list.keys()):
