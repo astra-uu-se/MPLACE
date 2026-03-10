@@ -25,7 +25,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import logging
 import os
-from typing import Callable, List
+from typing import Callable
 
 from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
@@ -498,7 +498,12 @@ class MainView:
                 self.num_rows.set(rows)
                 self.control_names.set(controls)
             except Exception as e:
-                logger.debug(f"Failed to parse DZN from recent: {e}")
+                logger.error(f"Failed to parse DZN from recent: {e}")
+                messagebox.showerror("Error", f"Failed to parse DZN file:\n{path}\n\n{str(e)}")
+                self.dzn_file_path.set('')
+                self.label_dzn_loaded.config(text=Messages.NO_DZN_LOADED)
+                self._update_run_minizinc_button_state()
+                return
             self._update_run_minizinc_button_state()
             self._add_to_recent(path, True)
         else:

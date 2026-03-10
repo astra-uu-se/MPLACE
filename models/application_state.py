@@ -69,8 +69,8 @@ class ApplicationState:
     use_compd: bool = False
     
     # Recent files
-    recent_dzn: List[str] = field(default_factory=list)
-    recent_csv: List[str] = field(default_factory=list)
+    recent_dzn: List[str] = field(default_factory=list, init=False)
+    recent_csv: List[str] = field(default_factory=list, init=False)
     
     def __post_init__(self) -> None:
         """Load persisted recent files from disk on startup."""
@@ -101,13 +101,13 @@ class ApplicationState:
     def remove_recent_dzn(self, path: str) -> None:
         """Remove a single stale DZN entry and persist."""
         if path in self.recent_dzn:
-            self.recent_dzn.remove(path)
+            self.recent_dzn = [p for p in self.recent_dzn if p != path]
             self._save_recent(RECENT_DZN_PATH, self.recent_dzn)
 
     def remove_recent_csv(self, path: str) -> None:
         """Remove a single stale CSV entry and persist."""
         if path in self.recent_csv:
-            self.recent_csv.remove(path)
+            self.recent_csv = [p for p in self.recent_csv if p != path]
             self._save_recent(RECENT_CSV_PATH, self.recent_csv)
     
     def reset_file_state(self) -> None:
