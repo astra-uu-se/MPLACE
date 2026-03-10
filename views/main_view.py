@@ -24,7 +24,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import logging
-import json
 import os
 from typing import Callable, List
 
@@ -36,12 +35,6 @@ from core.io_utils import path_show
 from ui.ui_validators import numeric_entry_callback
 
 logger = logging.getLogger(__name__)
-
-# Recent files configuration
-MAX_RECENT = 7
-RECENT_DZN_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_dzn.json")
-RECENT_CSV_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_csv.json")
-
 
 class MainView:
     """Main application window - pure view layer matching original."""
@@ -65,9 +58,6 @@ class MainView:
         self.on_generate_dzn_clicked = on_generate_dzn_clicked
         self.on_visualize_clicked = on_visualize_clicked
         
-        self.recent_dzn: List[str] = []
-        self.recent_csv: List[str] = []
-        
         self._init_variables()
         self._build_ui()
         
@@ -84,7 +74,6 @@ class MainView:
         self._setup_window()
         self._setup_shortcuts()
         self._setup_menu()
-        self._load_recents()
         self._refresh_recent_menus()
         self._set_program_state_to_default()
         
@@ -407,8 +396,8 @@ class MainView:
         
             # Ask user for CSV format using existing dialog
             file_formats = [
-                (FileTypes.CSV, "CSV (PharmBio) - default MPLACE format"),
-                (FileTypes.CSV_PLATER, "CSV (PLATER) - plate-shaped format for R package")
+                (FileTypes.CSV, FileTypes.PHARMBIO_LABEL),
+                (FileTypes.CSV_PLATER, FileTypes.PLATER_LABEL)
             ]
             
             chosen_format = ask_layout_export_format(self.root, file_formats)
@@ -482,56 +471,23 @@ class MainView:
         logger.info("Application shutdown initiated")
         self.root.destroy()
     
-    def _load_recents(self) -> None:
-        """Load recent files from disk."""
-        def load_json(path):
-            if os.path.exists(path):
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                        if isinstance(data, list):
-                            return [str(x) for x in data if os.path.exists(x)]
-                except Exception:
-                    pass
-            return []
-        self.recent_dzn = load_json(RECENT_DZN_PATH)[:MAX_RECENT]
-        self.recent_csv = load_json(RECENT_CSV_PATH)[:MAX_RECENT]
-        logger.debug(f"Loaded {len(self.recent_dzn)} recent DZN, {len(self.recent_csv)} recent CSV")
-    
-    def _save_recents(self) -> None:
-        """Save recent files to disk."""
-        try:
-            with open(RECENT_DZN_PATH, "w", encoding="utf-8") as f:
-                json.dump(self.recent_dzn[:MAX_RECENT], f, indent=1, ensure_ascii=False)
-        except Exception:
-            pass
-        try:
-            with open(RECENT_CSV_PATH, "w", encoding="utf-8") as f:
-                json.dump(self.recent_csv[:MAX_RECENT], f, indent=1, ensure_ascii=False)
-        except Exception:
-            pass
-    
     def _add_to_recent(self, path: str, is_dzn: bool) -> None:
         """Add file to recent list."""
-        path = os.path.abspath(path)
-        lst = self.recent_dzn if is_dzn else self.recent_csv
-        if path in lst:
-            lst.remove(path)
-        lst.insert(0, path)
-        while len(lst) > MAX_RECENT:
-            lst.pop()
-        self._save_recents()
+        if is_dzn:
+            self.controller.state.add_recent_dzn(path)
+        else:
+            self.controller.state.add_recent_csv(path)
         self._refresh_recent_menus()
     
     def _open_recent_file(self, path: str, is_dzn: bool) -> None:
         """Load recent file."""
         if not os.path.exists(path):
             messagebox.showerror("File Not Found", f"Could not find file:\n{path}\n\nThe entry will be removed from menu.")
-            lst = self.recent_dzn if is_dzn else self.recent_csv
-            if path in lst:
-                lst.remove(path)
-                self._save_recents()
-                self._refresh_recent_menus()
+            if is_dzn:
+                self.controller.state.remove_recent_dzn(path)
+            else:
+                self.controller.state.remove_recent_csv(path)
+            self._refresh_recent_menus()
             return
         if is_dzn:
             self.dzn_file_path.set(path)
@@ -551,21 +507,25 @@ class MainView:
     
     def _refresh_recent_menus(self) -> None:
         """Refresh both recent file menus."""
+        recent_dzn = self.controller.state.recent_dzn
+        recent_csv = self.controller.state.recent_csv
+        
         self.menu_recent_dzn.delete(0, tk.END)
-        if not self.recent_dzn:
+        
+        if not recent_dzn:
             self.menu_recent_dzn.add_command(label="(No recent DZN)", state=tk.DISABLED)
         else:
-            for fpath in self.recent_dzn:
+            for fpath in recent_dzn:
                 display = fpath if len(fpath) <= Validation.RECENT_PATH_DISPLAY_MAX_LENGTH else "..." + fpath[-Validation.RECENT_PATH_DISPLAY_MAX_LENGTH:]
                 self.menu_recent_dzn.add_command(label=display, command=lambda p=fpath: self._open_recent_file(p, True))
             self.menu_recent_dzn.add_separator()
             self.menu_recent_dzn.add_command(label="Clear List", command=lambda: self._clear_recent(True))
         
         self.menu_recent_csv.delete(0, tk.END)
-        if not self.recent_csv:
+        if not recent_csv:
             self.menu_recent_csv.add_command(label="(No recent CSV)", state=tk.DISABLED)
         else:
-            for fpath in self.recent_csv:
+            for fpath in recent_csv:
                 display = fpath if len(fpath) <= Validation.RECENT_PATH_DISPLAY_MAX_LENGTH else "..." + fpath[-Validation.RECENT_PATH_DISPLAY_MAX_LENGTH:]
                 self.menu_recent_csv.add_command(label=display, command=lambda p=fpath: self._open_recent_file(p, False))
             self.menu_recent_csv.add_separator()
@@ -575,10 +535,9 @@ class MainView:
         """Clear recent files list."""
         if messagebox.askyesno("Clear Recent Files", "Remove all entries from this menu?"):
             if is_dzn:
-                self.recent_dzn.clear()
+                self.controller.state.clear_recent_dzn()
             else:
-                self.recent_csv.clear()
-            self._save_recents()
+                self.controller.state.clear_recent_csv()
             self._refresh_recent_menus()
     
     def _load_csv_into_ui(self, path: str) -> None:

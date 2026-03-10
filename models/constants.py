@@ -16,7 +16,7 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.2.6
 # Last Revision: March 2026
 #
 
@@ -40,27 +40,15 @@ class PlateDefaults:
     CELL_LINES = '1'
     CONTROL_NAMES = '[]'
     
-    # Numeric versions for calculations
-    ROWS_INT = 16
-    COLS_INT = 24
-
 
 class UI:
     """User interface layout constants."""
     # Widget dimensions
-    BUTTON_WIDTH = 13
     BUTTON_WIDTH_STANDARD = 13
     ENTRY_WIDTH_NUMERIC = 6
     ENTRY_WIDTH_MATERIALS = 33
     
     # Padding and spacing
-    PADDING_FRAME = 10
-    PADDING_LABELFRAME = 10
-    PADDING_BETWEEN_FRAMES = 5
-    PADDING_BUTTON = 5
-    PADDING_LABEL = 5
-    PADDING_RADIOBUTTON = 10
-    
     FRAME_PADDING = 10
     GRID_PADDING = 3
     SMALL_PADDING = 2
@@ -105,7 +93,6 @@ class Visualization:
     # Concentration markers range
     CONCENTRATION_SIZE_MIN = 20
     CONCENTRATION_SIZE_MAX = 100
-    USE_SIZE_ENCODING = True
     
     # Add explicit canvas display sizes (in pixels)
     SCALE_CANVAS_WIDTH = 400   # Constrain scale canvas width  
@@ -151,16 +138,13 @@ class PathsIni:
 class Messages:
     """User interface messages and labels."""
     # Status messages
-    NO_FILE_LOADED = 'No file is loaded'
-    LOAD_DZN_FIRST = 'Load DZN file first'
     NO_DZN_LOADED = 'No *.dzn file is loaded'
     NO_CSV_LOADED = 'No *.csv file is loaded'
     
     # Dialog titles and labels
     FRAME_TITLE_DZN = 'Step 1 - Generate OR load the *.dzn file:'
-    FRAME_TITLE_MODEL = 'Step 2 - Run model'
-    FRAME_TITLE_CSV = 'Step 3 - Generate OR load the layout (*.csv):'
-    FRAME_TITLE_VIZ = 'Step 4 - Visualize the layout (*.csv):'
+    FRAME_TITLE_CSV = 'Step 2 - Generate OR load the layout (*.csv):'
+    FRAME_TITLE_VIZ = 'Step 3 - Visualize the layout (*.csv):'
     
     BUTTON_GENERATE_DZN = 'Generate *.dzn file'
     BUTTON_LOAD_DZN = 'Load *.dzn file'
@@ -192,9 +176,6 @@ class WindowConfig:
     TITLE_DZN_GENERATOR = "Generate *.dzn file"
     TITLE_VISUALIZER = "Visualize GUI"
     
-    # Window geometry
-    GEOMETRY_MAIN = "400x400"
-    
     # Window positions (x, y offsets)
     DZN_WINDOW_X = 30
     DZN_WINDOW_Y = 30
@@ -218,9 +199,8 @@ class FileTypes:
     PDF_FILES = [('pdf file', '*.pdf')]
     PNG_FILES = [('png file', '*.png')]
     FIG_FILES = [('png file', '*.png'),('pdf file', '*.pdf')]
-    PHARMBIO_LABEL = 'CSV (PharmBio)'
-    PLATER_LABEL = 'CSV (PLATER)'
-    CSV = 'pharmbio'
+    PHARMBIO_LABEL = 'CSV (PharmBio) - default MPLACE format'
+    PLATER_LABEL = 'CSV (PLATER) - plate-shaped format for R package'
     CSV_PLATER = 'plater'
     PHARMBIO = 'pharmbio'
     PLATER = 'plater'
@@ -248,7 +228,6 @@ class Validation:
     RECENT_PATH_DISPLAY_MAX_LENGTH = 80
     PATH_TRUNCATION_PREFIX = '...'
 
-
 class System:
     """System-related constants."""
     # Platform detection
@@ -259,10 +238,3 @@ class System:
     
     # Time delays
     UI_UPDATE_DELAY = 0  # seconds
-
-class DznErrors:
-    EMPTY_FIELDS = "All fields must be filled in"
-    NO_MATERIALS = "Must specify at least one compound or control"
-
-class CsvErrors:
-    INVALID_FORMAT = "Invalid CSV file format"
