@@ -152,12 +152,12 @@ class CsvController:
                 if path == -1:  # User cancelled
                     logger.info(f"User cancelled PLATER save on plate {i+1}/{len(plater_data_list)}")
                     if i == 0:
-                        return ['-1']  # Cancel everything if first file cancelled
+                        return ["-1"]  # Cancel everything if first file cancelled
                     else:
                         break  # Stop saving remaining files
                 elif path == -2:  # Write error
                     logger.error(f"Failed to write PLATER CSV file {i+1}")
-                    return ['-2']
+                    return ["-2"]
             
                 saved_paths.append(path)
                 logger.info(f"PLATER CSV {i+1}/{len(plater_data_list)} saved: {path}")

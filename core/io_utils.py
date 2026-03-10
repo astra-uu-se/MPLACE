@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.2.6
 # Last Revision: March 2026
 #
 
@@ -51,10 +51,11 @@ def write_figure(figure: Figure, filetypes: str, suggested_filename: str = '', m
         either an integer error flag (-1 or -2) or a path to a saved file
     """
     _, defaulttype = filetypes[0]
+    base = os.path.splitext(os.path.basename(suggested_filename))[0]
     path = tk.filedialog.asksaveasfilename(
         defaultextension=defaulttype[-4:], 
         filetypes=filetypes,
-        initialfile=os.path.basename(suggested_filename)[:-4]+defaulttype[-4:]
+        initialfile=base + defaulttype[-4:]
     )
     
     if path is None or path == '':
@@ -93,10 +94,11 @@ def write_figures_in_pdf(figures: List[Figure], suggested_filename: str = '', ma
         either an integer error flag (-1 or -2) or a path to a saved file
     """
     defaultextension = ".pdf"
+    base = os.path.splitext(os.path.basename(suggested_filename))[0]
     path = tk.filedialog.asksaveasfilename(
         defaultextension=defaultextension, 
         filetypes=FileTypes.PDF_FILES,
-        initialfile=os.path.basename(suggested_filename[:-4]+defaultextension)
+        initialfile=base + defaultextension
     )
     
     if path is None or path == '':
@@ -258,6 +260,8 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     done_concentrations = False
     matrix_count = 0
     
+    e = ''
+    
     for line in layout_text_array:
         if line.strip() == '':
             continue
@@ -358,7 +362,7 @@ def extract_csv_text(text: str) -> List[str]:
     Returns:
         List of CSV lines extracted from output
     """
-    s, e = 0, 0
+    s, e = None, 0
     lines = text.split('\n')
     for i in range(len(lines)):
         if lines[i] == '=====UNSATISFIABLE=====':
@@ -368,6 +372,11 @@ def extract_csv_text(text: str) -> List[str]:
         if lines[i][:17] == 'criteria function' or lines[i][:1] == '%' or lines[i] == '----------' or lines[i] == 'finished':
             if e <= s:
                 e = i
+    
+    if s is None:
+        raise ValueError('CSV header not found in MiniZinc output.')
+    if e <= s:
+        e = len(lines)
     
     extracted_lines = [line+'\n' for line in lines[s:e]]
     logger.debug(f"Extracted {len(extracted_lines)} CSV lines from MiniZinc output")

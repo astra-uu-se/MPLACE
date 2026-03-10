@@ -206,6 +206,7 @@ class FileTypes:
     PLATER = 'plater'
     PDF_LABEL = '*.PDF (all layouts in one file)'
     PNG_LABEL = '*.PNG (one layout per file)'
+    CSV = 'csv'
     PDF = 'pdf'
     PNG = 'png'
 
