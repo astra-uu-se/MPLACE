@@ -31,7 +31,6 @@ from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
 from controllers.csv_controller import CsvController
 from models.constants import PlateDefaults, MainMenu, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
-from core.layout_utils import find_all_plates_concentrations
 from ui.ui_utils import path_show
 from ui.ui_validators import numeric_entry_callback
 
@@ -415,13 +414,6 @@ class MainView:
             csv_path = None
             if chosen_format == FileTypes.CSV_PLATER:
                 # PLATER format
-                plates, _ = find_all_plates_concentrations(csv_lines[1:])
-    
-                if len(plates) > 1:
-                    tk.messagebox.showinfo("Information",f"There are {len(plates)} plates. For each plate there will be a corresponding save file dialogue.")
-                
-                logger.info(f"Generated {len(plates)} plates to convert and save.")
-                
                 rows = self.num_rows.get()
                 cols = self.num_cols.get()
                 paths = self.csv_controller.export_plater(csv_lines[1:], rows, cols)

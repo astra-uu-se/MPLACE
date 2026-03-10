@@ -61,7 +61,7 @@ class CsvController:
             suggested_name: Suggested filename (can include or exclude .csv extension)
         
         Returns:
-            Path where file was saved, or '-1' if cancelled, or '-2' if write failed
+            Path where file was saved, or None if the user cancelled the dialog
         
         Raises:
             IOError: If file write fails
@@ -104,12 +104,12 @@ class CsvController:
         tidying, and visualizing microtiter plates. Creates one file per plate.
     
         Args:
-            csv_lines: List of CSV lines in PharmBio format
+            csv_lines: List of CSV data lines in PharmBio format, *excluding* the header row
             rows: Number of plate rows
             cols: Number of plate columns
         
         Returns:
-            List of paths where files were saved, or ['-1'] if cancelled
+            List of paths where files were saved, or None if cancelled
         
         Raises:
             ValueError: If conversion fails
@@ -119,6 +119,10 @@ class CsvController:
             raise ValueError("CSV lines cannot be empty")
             
         logger.info("Exporting PLATER CSV format")
+        
+        if csv_lines and csv_lines[0].startswith('plateID'):
+            logger.warning("export_plater received a header row — stripping it automatically")
+            csv_lines = csv_lines[1:]
     
         # Create conversion request
         conversion_input = CSVConversionRequest(
@@ -129,7 +133,8 @@ class CsvController:
         
         # Convert - this returns list of CSV CONTENT strings, not paths!
         plater_data_list = convert_pharmbio_to_plater(conversion_input)
-        logger.info(f"Generated {len(plater_data_list)} plates to convert and save.")
+        n = len(plater_data_list)
+        logger.info(f"Generated {n} plates to convert and save.")
         
         saved_paths = []
         
@@ -143,6 +148,7 @@ class CsvController:
             
             # Save with dialog
             path = filedialog.asksaveasfilename(
+                title=f"Save plate {i + 1} of {n}",
                 defaultextension='.'+FileTypes.CSV,
                 filetypes=FileTypes.CSV_FILES,
                 initialfile=suggested_name

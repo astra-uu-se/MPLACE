@@ -151,7 +151,7 @@ def convert_to_pharmbio_format(layout_text_array: List[str]) -> List[str]:
     If it is in the Plater format, the function will convert it into PharmBio format
     
     Args:
-        List of lines from CSV file (with header)
+        layout_text_array: List of lines from CSV file (including header)
         
     Returns:
         List of lines from CSV file (excluding header)
@@ -199,7 +199,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     of drugs and compounds
     
     Args:
-        List of lines from CSV file (with header)
+        layout_text_array: List of lines from CSV file (including header)
         
     Returns:
         Dimensions of the extracted layout (number of rows and columns)
