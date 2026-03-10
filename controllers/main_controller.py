@@ -28,10 +28,7 @@ from models.application_state import ApplicationState
 from models.dto import AppConfig
 from core.dzn_parser import scan_dzn
 from core.io_utils import read_csv_file
-from controllers.dzn_controller import DznController
-from controllers.csv_controller import CsvController
 from controllers.minizinc_controller import MiniZincController
-from controllers.viz_controller import VisualizationController
 
 logger = logging.getLogger(__name__)
 

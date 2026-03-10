@@ -144,7 +144,7 @@ class CsvController:
             if len(plater_data_list) == 1:
                 suggested_name = "plate_plater.csv"
             else:
-                suggested_name = f"plate_{i+1}_plater.csv"
+                suggested_name = f"layout_plater_{i+1}.csv"
             
             # Save with dialog
             path = filedialog.asksaveasfilename(

@@ -149,7 +149,10 @@ class VizView:
                 self.save_button.configure(text=Messages.BUTTON_SAVE_LAYOUTS)
             
             # Set window position and start
-            self.window.geometry(f'+{WindowConfig.VIZ_WINDOW_X}+{WindowConfig.VIZ_WINDOW_Y}')
+            x = self.parent.winfo_rootx() + WindowConfig.DZN_WINDOW_X
+            y = self.parent.winfo_rooty() + WindowConfig.DZN_WINDOW_Y
+            
+            self.window.geometry(f'+{x}+{y}')
             logger.debug("Entering visualization window mainloop")
             
             self.window.mainloop()

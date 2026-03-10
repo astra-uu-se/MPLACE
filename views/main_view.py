@@ -416,17 +416,22 @@ class MainView:
                 # PLATER format
                 rows = self.num_rows.get()
                 cols = self.num_cols.get()
-                paths = self.csv_controller.export_plater(csv_lines[1:], rows, cols)
-                csv_path = paths[0] if paths else None
+                csv_path = self.csv_controller.export_plater(csv_lines[1:], rows, cols)
             else:
                 # PharmBio format (default) - pass suggested filename
                 csv_path = self.csv_controller.export_pharmbio(csv_lines, suggested_csv_name)
         
             # Check if csv_path is valid (not -1 or -2 error codes, and not empty string)
             if csv_path:
-                self._load_csv_into_ui(csv_path if isinstance(csv_path, str) else csv_path[0])
-                self._add_to_recent(csv_path, is_dzn=False)
-                logger.info(f"MiniZinc execution completed: {os.path.basename(csv_path)}")
+                if isinstance(csv_path, str):
+                    self._load_csv_into_ui(csv_path)
+                    self._add_to_recent(csv_path, is_dzn=False)
+                    logger.info(f"MiniZinc execution completed: {os.path.basename(csv_path)}")
+                else:
+                    self._load_csv_into_ui(csv_path[0])
+                    for path in csv_path:
+                        self._add_to_recent(path, is_dzn=False)
+                    logger.info(f"MiniZinc execution completed: {[os.path.basename(path) for path in csv_path]}")
             else:
                 self.label_csv_loaded.config(text=original_text)
                 logger.info("User cancelled CSV save")
@@ -485,6 +490,7 @@ class MainView:
             else:
                 self.controller.state.remove_recent_csv(path)
             self._refresh_recent_menus()
+            self.root.focus_force()
             return
         if is_dzn:
             self.dzn_file_path.set(path)
@@ -500,12 +506,14 @@ class MainView:
                 self.dzn_file_path.set('')
                 self.label_dzn_loaded.config(text=Messages.NO_DZN_LOADED)
                 self._update_run_minizinc_button_state()
+                self.root.focus_force()
                 return
             self._update_run_minizinc_button_state()
             self._add_to_recent(path, True)
         else:
             self._load_csv_into_ui(path)
             self._add_to_recent(path, False)
+        self.root.focus_force()
     
     def _refresh_recent_menus(self) -> None:
         """Refresh both recent file menus."""
@@ -567,7 +575,7 @@ class MainView:
     
     def _set_program_state_to_default_call(self) -> None:
         """Calls to reset all form fields to defaults."""
-        if messagebox.askyesno("Reset", "Would you like to reset all fields?"):
+        if messagebox.askyesno("Reset", "This will clear the loaded DZN/CSV files and reset all parameters. Continue?"):
             self._set_program_state_to_default()
     
     def _set_program_state_to_default(self) -> None:

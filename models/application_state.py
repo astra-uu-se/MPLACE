@@ -27,15 +27,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import List
 
-from models.constants import PlateDefaults
+from models.constants import PlateDefaults, RecentFiles
 
 logger = logging.getLogger(__name__)
-
-# Recent files configuration
-MAX_RECENT = 7
-RECENT_DZN_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_dzn.json")
-RECENT_CSV_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_csv.json")
-
 
 @dataclass
 class ApplicationState:
@@ -74,41 +68,41 @@ class ApplicationState:
     
     def __post_init__(self) -> None:
         """Load persisted recent files from disk on startup."""
-        self.recent_dzn = self._load_recent(RECENT_DZN_PATH)
-        self.recent_csv = self._load_recent(RECENT_CSV_PATH)
+        self.recent_dzn = self._load_recent(RecentFiles.RECENT_DZN_PATH)
+        self.recent_csv = self._load_recent(RecentFiles.RECENT_CSV_PATH)
         logger.debug(f"Loaded {len(self.recent_dzn)} recent DZN, {len(self.recent_csv)} recent CSV")
     
     def add_recent_dzn(self, path: str) -> None:
         """Add a DZN file path to the recent list and persist to disk."""
         self.recent_dzn = self._push_recent(path, self.recent_dzn)
-        self._save_recent(RECENT_DZN_PATH, self.recent_dzn)
+        self._save_recent(RecentFiles.RECENT_DZN_PATH, self.recent_dzn)
 
     def add_recent_csv(self, path: str) -> None:
         """Add a CSV file path to the recent list and persist to disk."""
         self.recent_csv = self._push_recent(path, self.recent_csv)
-        self._save_recent(RECENT_CSV_PATH, self.recent_csv)
+        self._save_recent(RecentFiles.RECENT_CSV_PATH, self.recent_csv)
 
     def clear_recent_dzn(self) -> None:
         """Clear the DZN recent list and persist the empty state."""
         self.recent_dzn = []
-        self._save_recent(RECENT_DZN_PATH, self.recent_dzn)
+        self._save_recent(RecentFiles.RECENT_DZN_PATH, self.recent_dzn)
 
     def clear_recent_csv(self) -> None:
         """Clear the CSV recent list and persist the empty state."""
         self.recent_csv = []
-        self._save_recent(RECENT_CSV_PATH, self.recent_csv)
+        self._save_recent(RecentFiles.RECENT_CSV_PATH, self.recent_csv)
 
     def remove_recent_dzn(self, path: str) -> None:
         """Remove a single stale DZN entry and persist."""
         if path in self.recent_dzn:
             self.recent_dzn = [p for p in self.recent_dzn if p != path]
-            self._save_recent(RECENT_DZN_PATH, self.recent_dzn)
+            self._save_recent(RecentFiles.RECENT_DZN_PATH, self.recent_dzn)
 
     def remove_recent_csv(self, path: str) -> None:
         """Remove a single stale CSV entry and persist."""
         if path in self.recent_csv:
             self.recent_csv = [p for p in self.recent_csv if p != path]
-            self._save_recent(RECENT_CSV_PATH, self.recent_csv)
+            self._save_recent(RecentFiles.RECENT_CSV_PATH, self.recent_csv)
     
     def reset_file_state(self) -> None:
         """Reset file paths to empty state."""
@@ -121,7 +115,7 @@ class ApplicationState:
         path = os.path.abspath(path)
         updated = [p for p in lst if p != path]
         updated.insert(0, path)
-        return updated[:MAX_RECENT]
+        return updated[:RecentFiles.MAX_RECENT]
 
     @staticmethod
     def _load_recent(json_path: str) -> List[str]:
@@ -133,7 +127,7 @@ class ApplicationState:
                 data = json.load(f)
             if isinstance(data, list):
                 resolved = [os.path.abspath(str(p)) for p in data]
-                return [p for p in resolved if os.path.exists(p)][:MAX_RECENT]
+                return [p for p in resolved if os.path.exists(p)][:RecentFiles.MAX_RECENT]
         except Exception as e:
             logger.warning(f"Could not load recent files from {json_path}: {e}")
         return []

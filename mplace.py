@@ -55,7 +55,6 @@ def setup_logging() -> None:
             logging.StreamHandler(sys.stdout)
         ]
     )
-    logger = logging.getLogger(__name__)
     logger.info("MPLACE application starting")
 
 class MPlaceApplication:
@@ -239,7 +238,6 @@ def main():
         app = MPlaceApplication()
         app.run()
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.critical(f"Fatal error: {e}", exc_info=True)
         sys.exit(1)
 

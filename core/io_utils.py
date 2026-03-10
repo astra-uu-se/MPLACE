@@ -77,7 +77,7 @@ def save_figures_to_pdf(
     """Write multiple figures into a single PDF file.
 
     Args:
-        figures: List of (figure, name) tuples — only the figure is used
+        figures: List of figures
         path: Full destination path
         material_scales: Additional figures to append at the end
 
@@ -157,7 +157,7 @@ def convert_to_pharmbio_format(layout_text_array: List[str]) -> List[str]:
         List of lines from CSV file (excluding header)
         
     Raises:
-        FileNotFoundError: If file cannot be read
+        ValueError: If the file format is neither PharmBio nor valid Plater
     """
     header = layout_text_array[0].strip().split(',')
     
@@ -189,7 +189,8 @@ def convert_to_pharmbio_format(layout_text_array: List[str]) -> List[str]:
                                                                  ]))
             
             return plater_layout_text_array
-            
+        except ValueError:
+            raise
         except Exception as e:
             logger.error(f"File could not be read in Plater format, error: {e}")
             raise ValueError(f"CSV file format unrecognized: {e}") from e
@@ -309,7 +310,7 @@ def extract_csv_text(text: str) -> List[str]:
     Returns:
         List of CSV lines extracted from output
     """
-    s, e = None, 0
+    s, e = None, None
     lines = text.split('\n')
     for i in range(len(lines)):
         if lines[i] == '=====UNSATISFIABLE=====':
@@ -317,11 +318,13 @@ def extract_csv_text(text: str) -> List[str]:
         if lines[i] == 'plateID,well,cmpdname,CONCuM,cmpdnum,VOLuL':
             s = i
         if lines[i][:17] == 'criteria function' or lines[i][:1] == '%' or lines[i] == '----------' or lines[i] == 'finished':
-            if e <= s:
+            if e is None or e <= s:
                 e = i
     
     if s is None:
         raise ValueError('CSV header not found in MiniZinc output.')
+    if e is None:
+        e = len(lines)
     if e <= s:
         e = len(lines)
     

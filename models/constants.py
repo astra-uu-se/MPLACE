@@ -28,6 +28,7 @@ This module centralizes all magic numbers, default values, and string constants
 used throughout the application to improve maintainability and consistency.
 """
 
+import os
 from typing import List
 
 
@@ -240,3 +241,10 @@ class System:
     
     # Time delays
     UI_UPDATE_DELAY = 0  # seconds
+
+class RecentFiles:
+    """Recent files configuration"""
+    MAX_RECENT = 7
+    RECENT_DZN_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_dzn.json")
+    RECENT_CSV_PATH = os.path.join(os.path.expanduser("~"), ".mplace_recent_csv.json")
+    
