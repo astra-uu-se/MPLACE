@@ -17,7 +17,7 @@
 # Orchestrates main window operations and coordinates other controllers.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.5
+# Version: 1.3.1
 # Last Revision: March 2026
 #
 
@@ -93,7 +93,7 @@ class MainController:
             return (cols, rows, controls)
         except FileNotFoundError as e:
             logger.error(f"DZN file not found: {path}")
-            raise
+            raise ValueError(f"DZN file not found: {e}") from e
         except Exception as e:
             logger.error(f"Failed to parse DZN file: {e}")
             raise ValueError(f"Invalid DZN file format: {e}") from e

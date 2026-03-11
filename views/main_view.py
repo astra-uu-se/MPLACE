@@ -17,15 +17,19 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.1
 # Last Revision: March 2026
 #
 
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
 import logging
 import os
-from typing import Callable
+import time
+import queue
+import threading
+from typing import Callable, Optional
+
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
 
 from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
@@ -33,6 +37,7 @@ from controllers.csv_controller import CsvController
 from models.constants import PlateDefaults, MainMenu, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
 from ui.ui_utils import path_show
 from ui.ui_validators import numeric_entry_callback
+from ui.layout_format_dialog import ask_layout_export_format        
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +101,9 @@ class MainView:
         self.control_names = tk.StringVar(self.root)
         self.use_compd_flag = tk.BooleanVar(self.root)
         self.vcmd = (self.root.register(numeric_entry_callback))
+        self._mzn_queue: queue.Queue = queue.Queue()
+        self._mzn_timer_active: bool = False
+        self._mzn_start: float = 0.0
     
     def _build_ui(self) -> None:
         """Build UI matching original exactly."""
@@ -357,54 +365,80 @@ class MainView:
                                
     def _on_run_minizinc(self) -> None:
         """Handle Run Model button click."""
-        from ui.layout_format_dialog import ask_layout_export_format
-        
         model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
+        dzn_path = self.dzn_file_path.get()
+        use_compd = self.use_compd_flag.get()
+        timeout = self.minizinc_controller.get_timeout(use_compd)
         logger.info(f"Running {model_name} model...")
-    
-        original_text = self.label_csv_loaded.cget("text")
-        self.label_csv_loaded.config(text='Running the model...')
-        self.root.update_idletasks()
-    
+
+        self.lock()
+        self._mzn_start = time.monotonic()
+        self._mzn_timer_active = True
+        self._tick_timer(timeout)
+
+        def worker():
+            try:
+                # Run model through MiniZincController
+                if use_compd:
+                    output = self.minizinc_controller.run_compd_model(dzn_path)
+                else:
+                    output = self.minizinc_controller.run_plaid_model(dzn_path)
+                self._mzn_queue.put(("ok", output))
+            except Exception as e:
+                self._mzn_queue.put(("err", e))
+
+        threading.Thread(target=worker, daemon=True).start()
+        self.root.after(100, lambda: self._poll_mzn_result(model_name, dzn_path))
+
+    def _tick_timer(self, timeout_s: Optional[int]) -> None:
+        """Update the status label with elapsed time every second."""
+        if not self._mzn_timer_active:
+            return
+        elapsed = int(time.monotonic() - self._mzn_start)
+        if timeout_s is not None:
+            self.label_csv_loaded.config(text=f"Running MiniZinc: {elapsed}s / {timeout_s}s")
+        else:
+            self.label_csv_loaded.config(text=f"Running MiniZinc: {elapsed}s")
+        self.root.after(1000, lambda: self._tick_timer(timeout_s))
+
+    def _poll_mzn_result(self, model_name: str, dzn_path: str) -> None:
+        """Poll the result queue; when ready, handle export on the main thread."""
         try:
-            self.lock()
-            dzn_path = self.dzn_file_path.get()
-            use_compd = self.use_compd_flag.get()
-        
-            # Run model through MiniZincController
-            if use_compd:
-                output = self.minizinc_controller.run_compd_model(dzn_path)
-            else:
-                output = self.minizinc_controller.run_plaid_model(dzn_path)
-            
-        except Exception as e:
-            self.label_csv_loaded.config(text='MiniZinc execution failed')
-            logger.error(f"MiniZinc execution failed: {e}")
-            messagebox.showerror("Model Execution Error", 
-                                 f"Failed to run {model_name} model.\n\n{str(e)}")
+            status, payload = self._mzn_queue.get_nowait()
+        except queue.Empty:
+            self.root.after(100, lambda: self._poll_mzn_result(model_name, dzn_path))
+            return
+
+        # MiniZinc finished — stop the timer
+        self._mzn_timer_active = False
+
+        if status == "err":
+            self.label_csv_loaded.config(text="MiniZinc execution failed")
+            logger.error(f"MiniZinc execution failed: {payload}")
+            messagebox.showerror("Model Execution Error",
+                                 f"Failed to run {model_name} model.\n\n{str(payload)}")
             self.unlock()
             self.root.focus_force()
             return
-            
+
+        # status == "ok" — proceed with CSV extraction and export (main thread only)
         try:
-            # Extract CSV from output
-            csv_lines = self.minizinc_controller.extract_csv_from_output(output)
-        
+            csv_lines = self.minizinc_controller.extract_csv_from_output(payload)
+
             # Generate suggested filename from DZN path
             dzn_basename = os.path.basename(dzn_path)
             suggested_csv_name = os.path.splitext(dzn_basename)[0] + '.csv'
-        
-            # Ask user for CSV format using existing dialog
+
+            # Ask user for CSV format
             file_formats = [
-                (FileTypes.CSV, FileTypes.PHARMBIO_LABEL),
+                (FileTypes.CSV,        FileTypes.PHARMBIO_LABEL),
                 (FileTypes.CSV_PLATER, FileTypes.PLATER_LABEL)
             ]
             
             chosen_format = ask_layout_export_format(self.root, file_formats)
             
             if not chosen_format:
-                # User cancelled
-                self.label_csv_loaded.config(text=original_text)
+                self.label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
                 logger.info("User cancelled format selection")
                 self.unlock()
                 self.root.focus_force()
@@ -421,7 +455,7 @@ class MainView:
                 # PharmBio format (default) - pass suggested filename
                 csv_path = self.csv_controller.export_pharmbio(csv_lines, suggested_csv_name)
         
-            # Check if csv_path is valid (not -1 or -2 error codes, and not empty string)
+            # Check if csv_path is valid
             if csv_path:
                 if isinstance(csv_path, str):
                     self._load_csv_into_ui(csv_path)
@@ -433,14 +467,13 @@ class MainView:
                         self._add_to_recent(path, is_dzn=False)
                     logger.info(f"MiniZinc execution completed: {[os.path.basename(path) for path in csv_path]}")
             else:
-                self.label_csv_loaded.config(text=original_text)
+                self.label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
                 logger.info("User cancelled CSV save")
             
         except Exception as e:
-            # Export failed after successful model run
-            self.label_csv_loaded.config(text='Export failed after successful model run')
+            self.label_csv_loaded.config(text="Export failed after successful model run")
             logger.error(f"CSV export failed after successful model run: {e}")
-            messagebox.showerror("Export Error", 
+            messagebox.showerror("Export Error",
                                  f"Model ran successfully but export failed.\n\n{str(e)}")
         
         finally:

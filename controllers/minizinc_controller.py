@@ -17,12 +17,14 @@
 # Handles running constraint programming models and processing output.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3
+# Version: 1.3.1
 # Last Revision: March 2026
 #
 
 import logging
-from typing import List
+import json
+from typing import List, Optional
+from models.constants import PathsIni
 from models.dto import AppConfig
 from core.minizinc_runner import run_model as run_minizinc_model
 from core.io_utils import extract_csv_text
@@ -163,3 +165,22 @@ class MiniZincController:
         except Exception as e:
             logger.error(f"Failed to extract CSV: {e}")
             raise ValueError(f"Could not extract CSV from output: {e}") from e
+    
+    def get_timeout(self, use_compd: bool) -> Optional[int]:
+        """Return timeout in seconds from a MiniZinc .mpc file, or None if absent/unreadable."""
+        if use_compd:
+            return self._parse_timeout_s(self.app_config.compd_mpc_path)
+        else:
+            return self._parse_timeout_s(self.app_config.plaid_mpc_path)
+    
+    def _parse_timeout_s(self, mpc_path: str = PathsIni.FILE_ERROR_PLACEHOLDER) -> Optional[int]:
+        """Return timeout in seconds from a MiniZinc .mpc file, or None if absent/unreadable."""
+        if mpc_path == PathsIni.FILE_ERROR_PLACEHOLDER:
+            return None
+        try:
+            with open(mpc_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            ms = data.get("time-limit")
+            return int(ms) // 1000 if ms is not None else None
+        except Exception:
+            return None

@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.1
 # Last Revision: March 2026
 #
 
