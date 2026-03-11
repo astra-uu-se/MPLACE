@@ -167,7 +167,7 @@ class MiniZincController:
             raise ValueError(f"Could not extract CSV from output: {e}") from e
     
     def get_timeout(self, use_compd: bool) -> Optional[int]:
-        """Return timeout in seconds from a MiniZinc .mpc file, or None if absent/unreadable."""
+        """Return timeout in seconds for the selected model."""
         if use_compd:
             return self._parse_timeout_s(self.app_config.compd_mpc_path)
         else:

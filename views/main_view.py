@@ -202,7 +202,6 @@ class MainView:
         - Auto-selects a valid model if current selection is unavailable
 
         Called from:
-        - __init__() during startup
         - _set_program_state_to_default() to reapply after clearing state
         """
         logger.info("Applying config defaults")
@@ -442,6 +441,8 @@ class MainView:
             if not chosen_format:
                 self.label_csv_loaded.config(text=original_text)
                 logger.info("User cancelled format selection")
+                self.unlock()
+                self.root.focus_force()
                 return
         
             # Save in chosen format
@@ -542,10 +543,8 @@ class MainView:
                 self.root.focus_force()
                 return
             self._update_run_minizinc_button_state()
-            self._add_to_recent(path, True)
         else:
             self._load_csv_into_ui(path)
-            self._add_to_recent(path, False)
         self.root.focus_force()
     
     def _refresh_recent_menus(self) -> None:

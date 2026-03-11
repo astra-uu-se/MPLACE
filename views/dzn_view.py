@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.1
 # Last Revision: March 2026
 #
 
@@ -365,6 +365,7 @@ class DznView:
     
     def show(self) -> None:
         """Show the DZN generation window."""
+        self.reset_to_defaults()
         self.window.deiconify()
         self.window.grab_set()
         

@@ -43,7 +43,7 @@ from models.application_state import ApplicationState
 from models.constants import PathsIni, Messages
 
 
-logger = logging.getLogger(__name__)    
+logger = logging.getLogger(__name__)
 
 def setup_logging() -> None:
     """Configure application-wide logging."""
@@ -226,7 +226,7 @@ class MPlaceApplication:
         logger.info("Starting MPLACE application main loop")
 
         # Display startup warnings for missing configurations
-        self.root.after(1, self._show_startup_warnings())
+        self.root.after(1, self._show_startup_warnings)
         
         self.views['main'].show()
                 

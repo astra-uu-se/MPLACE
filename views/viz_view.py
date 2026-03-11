@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.1
 # Last Revision: March 2026
 #
 
@@ -155,7 +155,7 @@ class VizView:
             self.window.geometry(f'+{x}+{y}')
             logger.debug("Entering visualization window mainloop")
             
-            self.window.mainloop()
+            self.parent.wait_window(self.window)
             
         except Exception as e:
             logger.error(f"Visualization error: {e}")
@@ -477,7 +477,6 @@ class VizView:
         finally:
             if self.window:
                 logger.info("Visualization window closed")
-                self.window.quit()
                 self.window.destroy()
                 self.window = None
                 self.parent.focus_force()
@@ -494,8 +493,9 @@ class VizView:
                 canvas = widget.canvas_ref
                 fig = canvas.figure
                 canvas.get_tk_widget().destroy()
+                canvas.get_renderer()
                 pyplot.close(fig)
-                del canvas
+                del widget.canvas_ref
                 logger.debug("Canvas cleaned up")
             except (AttributeError, tk.TclError):
                 pass

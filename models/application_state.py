@@ -57,7 +57,7 @@ class ApplicationState:
     # Plate configuration
     num_rows: str = PlateDefaults.ROWS
     num_cols: str = PlateDefaults.COLS
-    control_names: str = '[]'
+    control_names: str = PlateDefaults.CONTROL_NAMES
     
     # Model selection
     use_compd: bool = False
