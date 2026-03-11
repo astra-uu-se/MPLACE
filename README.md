@@ -271,7 +271,7 @@ The `.mpc` files under `mzn/` are plain JSON files that control how MiniZinc run
 ## Roadmap Highlights
 
 - Optional exports to standard formats (e.g., Wellmap TOML)
-- Progress indicators for long runs
+  
 
 ## Citation
 
