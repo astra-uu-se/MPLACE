@@ -365,6 +365,7 @@ class MainView:
                                
     def _on_run_minizinc(self) -> None:
         """Handle Run Model button click."""
+        original_text = self.label_csv_loaded.cget("text")
         model_name = Messages.MODEL_COMPD if self.use_compd_flag.get() else Messages.MODEL_PLAID
         dzn_path = self.dzn_file_path.get()
         use_compd = self.use_compd_flag.get()
@@ -375,6 +376,7 @@ class MainView:
         self._mzn_start = time.monotonic()
         self._mzn_timer_active = True
         self._tick_timer(timeout)
+        self._mzn_queue = queue.Queue()
 
         def worker():
             try:
@@ -388,7 +390,7 @@ class MainView:
                 self._mzn_queue.put(("err", e))
 
         threading.Thread(target=worker, daemon=True).start()
-        self.root.after(100, lambda: self._poll_mzn_result(model_name, dzn_path))
+        self.root.after(100, lambda: self._poll_mzn_result(model_name, dzn_path, original_text))
 
     def _tick_timer(self, timeout_s: Optional[int]) -> None:
         """Update the status label with elapsed time every second."""
@@ -401,12 +403,12 @@ class MainView:
             self.label_csv_loaded.config(text=f"Running MiniZinc: {elapsed}s")
         self.root.after(1000, lambda: self._tick_timer(timeout_s))
 
-    def _poll_mzn_result(self, model_name: str, dzn_path: str) -> None:
+    def _poll_mzn_result(self, model_name: str, dzn_path: str, original_text: str) -> None:
         """Poll the result queue; when ready, handle export on the main thread."""
         try:
             status, payload = self._mzn_queue.get_nowait()
         except queue.Empty:
-            self.root.after(100, lambda: self._poll_mzn_result(model_name, dzn_path))
+            self.root.after(100, lambda: self._poll_mzn_result(model_name, dzn_path, original_text))
             return
 
         # MiniZinc finished — stop the timer
@@ -438,10 +440,8 @@ class MainView:
             chosen_format = ask_layout_export_format(self.root, file_formats)
             
             if not chosen_format:
-                self.label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
+                self.label_csv_loaded.config(text=original_text)
                 logger.info("User cancelled format selection")
-                self.unlock()
-                self.root.focus_force()
                 return
         
             # Save in chosen format
@@ -467,7 +467,7 @@ class MainView:
                         self._add_to_recent(path, is_dzn=False)
                     logger.info(f"MiniZinc execution completed: {[os.path.basename(path) for path in csv_path]}")
             else:
-                self.label_csv_loaded.config(text=Messages.NO_CSV_LOADED)
+                self.label_csv_loaded.config(text=original_text)
                 logger.info("User cancelled CSV save")
             
         except Exception as e:
