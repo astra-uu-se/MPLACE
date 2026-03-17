@@ -18,7 +18,7 @@
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.3.2
-# Last Revision: January 2026
+# Last Revision: March 2026
 #
 
 import logging

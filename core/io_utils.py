@@ -322,7 +322,7 @@ def extract_csv_text(text: str) -> List[str]:
         if lines[i] == 'plateID,well,cmpdname,CONCuM,cmpdnum,VOLuL':
             s = i
         if lines[i][:17] == 'criteria function' or lines[i][:1] == '%' or lines[i] == '----------' or lines[i] == 'finished':
-            if e is None or e <= s:
+            if e is None or (s is not None and e <= s):
                 e = i
     
     if s is None:
