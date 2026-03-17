@@ -207,7 +207,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         Lists of lines corresponding to drug and concentrations
         
     Raises:
-        FileNotFoundError: If file cannot be read
+        ValueError: If file cannot be read
     """
     drugs_matrix: List[str] = []
     concentrations_matrix: List[str] = []
@@ -329,7 +329,7 @@ def extract_csv_text(text: str) -> List[str]:
         raise ValueError('CSV header not found in MiniZinc output.')
     if e is None:
         e = len(lines)
-    if e <= s:
+    elif e <= s:
         e = len(lines)
     
     extracted_lines = [line + '\n' for line in lines[s:e]]

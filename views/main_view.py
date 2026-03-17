@@ -440,6 +440,7 @@ class MainView:
             
             if not chosen_format:
                 self.label_csv_loaded.config(text=original_text)
+                messagebox.showwarning("Warning", "Model ran successfully, the user cancelled CSV save")
                 logger.info("User cancelled format selection")
                 self.unlock()
                 self.root.focus_force()
@@ -469,6 +470,7 @@ class MainView:
                     logger.info(f"MiniZinc execution completed: {[os.path.basename(path) for path in csv_path]}")
             else:
                 self.label_csv_loaded.config(text=original_text)
+                messagebox.showwarning("Warning", "Model ran successfully, the user cancelled CSV save")
                 logger.info("User cancelled CSV save")
             
         except Exception as e:

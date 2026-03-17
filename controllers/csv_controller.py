@@ -25,7 +25,7 @@
 #
 
 import logging
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from typing import List, Optional
 
 from models.dto import CSVConversionRequest
@@ -161,6 +161,7 @@ class CsvController:
                     return None   # cancelled before saving anything
                 else:
                     logger.warning(f"Export stopped after {i+1} of {n} plates; already saved files were kept.")
+                    messagebox.showwarning("Warning", f"User cancelled saving on plate {i+1} out of {n}")
                     break         # partial save — return what was saved so far
                                     
             if isinstance(plater_csv_content, str):

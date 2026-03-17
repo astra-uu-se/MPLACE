@@ -25,7 +25,7 @@ import sys
 import time
 import logging
 import subprocess
-from typing import List, Dict, Tuple, Union, Sequence
+import typing
 
 from models.constants import PathsIni, Messages
 

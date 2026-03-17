@@ -363,8 +363,7 @@ class VisualizationController:
         
         # if the plate differs from 16x24 then we need to readjust the size ranges
         # We do not increase more than 1 / 0.7 to keep the marker size reasonable
-        if plate_num_cols > plate_num_rows:
-            plate_num_rows, plate_num_cols = plate_num_cols, plate_num_rows
+        plate_num_rows, plate_num_cols, _ = self._resolve_orientation(plate_num_rows, plate_num_cols)
         ratio = max(0.7, plate_num_rows / 24, plate_num_cols / 16)
         
         # Get size range from constants

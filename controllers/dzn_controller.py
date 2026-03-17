@@ -72,7 +72,7 @@ class DznController:
         # Validate plate dimensions
         if data.num_cols != '' and data.num_rows != '':
             dim_errors = validate_plate_dimensions(data.num_rows, data.num_cols)
-        errors.extend(dim_errors)
+            errors.extend(dim_errors)
         
         # Parse and validate compounds - initialize to empty dict
         compounds_dict, parsing_errors = parse_materials_dict(data.compounds_dict)

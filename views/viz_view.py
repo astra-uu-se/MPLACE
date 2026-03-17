@@ -421,6 +421,7 @@ class VizView:
                 initialfile=base + '.png'
             )
             if not path:
+                messagebox.showwarning("Warning", "User cancelled saving on plate {i+1} out of {n}")
                 logger.info(f"User cancelled saving on plate {i+1}/{n}")
                 return
 
