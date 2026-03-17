@@ -25,7 +25,7 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Add Progress Indicators          | Done           | Long-running MiniZinc operations show feedback the elapsed time and, if applicable, the process timeouts. |
 | Low      | Improve Error Diagnostics        | Done           | MiniZinc failures provide more specific diagnostic information which is now shown to the user; enhanced subprocess error handling with context-specific guidance. |
 | Low      | Add Bounds Checking              | Not done       | Plate dimensions and layout parameters lack validation against reasonable limits; add input validation with helpful error messages. |
-| Low      | Enhance Documentation            | Not done       | Complex algorithms like parse_control_string need more detailed inline comments; add concrete usage examples in docstrings. |
+| Low      | Enhance Documentation            | Done           | Complex algorithms like __parse_control_string__ have more detailed inline comments; added concrete usage examples in docstrings when necessary. |
 | Low      | Add Unit Test Coverage           | Not done       | No apparent test coverage for utility functions and data processing; create a test suite for core functionality. |
 | Low      | Add Integration Tests            | Not done       | No end-to-end testing of DZN → MiniZinc → CSV → Visualization workflow; add comprehensive integration test suite. |
 | Low      | Add Keyboard Shortcuts           | Done       | Added keyboard shortcuts for common operations, together with additional main menu items |
@@ -53,4 +53,4 @@ This progress tracking file should be updated after each significant change or b
 
 ---
 
-*Last updated: March 11, 2026 ("Improve Error Diagnostics" task is done)*
+*Last updated: March 17, 2026 ("Improve Error Diagnostics" and "Enhance Documentation" tasks are done)*
