@@ -16,7 +16,7 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.2
 # Last Revision: March 2026
 
 import tkinter as tk
@@ -172,34 +172,35 @@ class MPlaceApplication:
     def _open_viz_window(self) -> None:
         """Open the visualization window."""
         logger.info("Opening visualization window")
-        self.views['main'].lock()
-        state = self.state
         
-        # Check if CSV is loaded
-        if not state.csv_file_path:
-            logger.warning("Attempted to open visualization without CSV loaded")
-            messagebox.showerror("Error", "Please load a CSV file first")
+        try:
+            self.views['main'].lock()
+            state = self.state
+            
+            # Check if CSV is loaded
+            if not state.csv_file_path:
+                logger.warning("Attempted to open visualization without CSV loaded")
+                messagebox.showerror("Error", "Please load a CSV file first")
+                self.views['main'].unlock()
+                return
+            
+            # Generate figure name template
+            csv_path = Path(state.csv_file_path)
+            
+            # Add model name suffix to figure template to distinguish PLAID vs COMPD results
+            model_name = Messages.MODEL_COMPD if state.use_compd else Messages.MODEL_PLAID
+            figure_name_template = str(csv_path.parent / csv_path.stem) + '_' + model_name + '_'
+        
+            # Open visualization
+            self.views['viz'].show(
+                file_path=state.csv_file_path,
+                figure_name_template=figure_name_template,
+                rows=state.num_rows,
+                cols=state.num_cols,
+                control_names=state.control_names
+                )
+        finally:
             self.views['main'].unlock()
-            return
-        
-        # Generate figure name template
-        csv_path = Path(state.csv_file_path)
-        
-        # Add model name suffix to figure template to distinguish PLAID vs COMPD results
-        model_name = Messages.MODEL_COMPD if state.use_compd else Messages.MODEL_PLAID
-        figure_name_template = str(csv_path.parent / csv_path.stem) + '_' + model_name + '_'
-        
-        
-        # Open visualization
-        self.views['viz'].show(
-            file_path=state.csv_file_path,
-            figure_name_template=figure_name_template,
-            rows=state.num_rows,
-            cols=state.num_cols,
-            control_names=state.control_names
-        )
-        
-        self.views['main'].unlock()
     
     def _on_dzn_generated(self, file_path: str, rows: str, cols: str, controls: str) -> None:
         """
@@ -226,7 +227,7 @@ class MPlaceApplication:
         logger.info("Starting MPLACE application main loop")
 
         # Display startup warnings for missing configurations
-        self.root.after(1, self._show_startup_warnings)
+        self.root.after(1, self._show_startup_warnings) # the window renders before the dialog
         
         self.views['main'].show()
                 

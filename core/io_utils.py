@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
@@ -70,14 +70,14 @@ def save_figure_to_path(
 
 
 def save_figures_to_pdf(
-    figures: List[Figure],
+    figures: List[Tuple[Figure, str]],
     path: str,
     material_scales: Optional[List[Figure]] = None
 ) -> None:
     """Write multiple figures into a single PDF file.
 
     Args:
-        figures: List of figures
+        figures: List of tuples (figure, figure filename template)
         path: Full destination path
         material_scales: Additional figures to append at the end
 
@@ -220,7 +220,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     done_concentrations = False
     matrix_count = 0
     
-    e = ''
+    current_section = ''
     
     for line in layout_text_array:
         if line.strip() == '':
@@ -231,7 +231,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         elements = line.strip().split(',')
         
         if len(elements) != cols:
-            raise Exception(f'CSV Plater file has formatting issues (number of column for line {line} is not equal to {cols})')
+            raise ValueError(f'CSV Plater file has formatting issues (number of column for line {line} is not equal to {cols})')
         
         if is_drugs and elements == ['' for _ in range(cols)]:
             is_drugs = False
@@ -244,21 +244,21 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         if elements[0] == PlaterFormat.DRUGS_LABEL:
             is_drugs = True
             matrix_count += 1
-            e = 'drugs'
+            current_section = 'drugs'
         elif is_drugs:
             drugs_matrix.append(elements)
             
         if elements[0] == PlaterFormat.CONCENTRATIONS_LABEL:
             is_concentrations = True
             matrix_count += 1
-            e = 'concentrations'
+            current_section = 'concentrations'
         elif is_concentrations:
             concentrations_matrix.append(elements)
             
         if elements[0] == PlaterFormat.DRUGS_LABEL or elements[0] == PlaterFormat.CONCENTRATIONS_LABEL:
             for i in range(1,cols):
                 if elements[i] != str(i):
-                    raise Exception(f'CSV Plater file has formatting issues (header line for {e} has incorrect order of columns)')
+                    raise ValueError(f'CSV Plater file has formatting issues (header line for {current_section} has incorrect order of columns)')
     
     # When reached EOF
     if is_drugs:
@@ -268,9 +268,9 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     
     # Data verification:
     if matrix_count < 2 or not done_drugs or not done_concentrations:
-        raise Exception(f'CSV Plater file has formatting issues (no layout matrix for drugs or concentrations)')
+        raise ValueError(f'CSV Plater file has formatting issues (no layout matrix for drugs or concentrations)')
     if matrix_count > 2:
-        raise Exception(f'CSV Plater file has formatting issues (too many layout matrices for drugs/concentrations)')
+        raise ValueError(f'CSV Plater file has formatting issues (too many layout matrices for drugs/concentrations)')
     
     rows = len(drugs_matrix)
     if rows != len(concentrations_matrix):
@@ -280,7 +280,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         logger.info('Concentrations:')
         for line in concentrations_matrix:
             logger.info(line)
-        raise Exception(f'Drug and concentration layouts of Plater file have mismatched number of rows: {rows} and {len(concentrations_matrix)}')
+        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {rows} and {len(concentrations_matrix)}')
     
     return rows, cols, drugs_matrix, concentrations_matrix
 
@@ -312,9 +312,13 @@ def extract_csv_text(text: str) -> List[str]:
     """
     s, e = None, None
     lines = text.split('\n')
+
     for i in range(len(lines)):
         if lines[i] == '=====UNSATISFIABLE=====':
-            raise Exception('The model is unsatisfiable (no layout can not be constructed).\nRecommendation: change the input data to make the solution less restrictive')
+             raise RuntimeError(
+                'The model is unsatisfiable (no layout can be constructed).\n'
+                'Recommendation: relax some constraints or change the input data.'
+                )
         if lines[i] == 'plateID,well,cmpdname,CONCuM,cmpdnum,VOLuL':
             s = i
         if lines[i][:17] == 'criteria function' or lines[i][:1] == '%' or lines[i] == '----------' or lines[i] == 'finished':
@@ -328,7 +332,7 @@ def extract_csv_text(text: str) -> List[str]:
     if e <= s:
         e = len(lines)
     
-    extracted_lines = [line+'\n' for line in lines[s:e]]
+    extracted_lines = [line + '\n' for line in lines[s:e]]
     logger.debug(f"Extracted {len(extracted_lines)} CSV lines from MiniZinc output")
     return extracted_lines
 

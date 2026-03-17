@@ -17,7 +17,7 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.2
 # Last Revision: January 2026
 #
 
@@ -27,7 +27,7 @@ import math
 import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Tuple
 
 from models.csv_data import VisualizationState
 from core.io_utils import read_csv_file
@@ -160,11 +160,7 @@ class VisualizationController:
         from core.layout_utils import transform_index
     
         # Ensure consistent orientation (wider dimension is horizontal)
-        if num_cols > num_rows:
-            num_rows, num_cols = num_cols, num_rows
-            is_switched = True
-        else:
-            is_switched = False
+        num_rows, num_cols, is_switched = self._resolve_orientation(num_rows, num_cols)
     
         ax.grid(True)
         ax.set_xticks(np.arange(0, num_rows + 1, 1), labels=['' for _ in range(num_rows + 1)])
@@ -203,12 +199,9 @@ class VisualizationController:
         from core.layout_utils import transform_coordinate, to_number_if_possible
     
         # Determine if orientation is switched
-        num_rows = viz_state.num_rows
-        num_cols = viz_state.num_cols
-        if num_cols > num_rows:
-            is_switched = True
-        else:
-            is_switched = False
+        num_rows, num_cols, is_switched = self._resolve_orientation(
+            viz_state.num_rows, viz_state.num_cols
+        )
     
         # Group wells by material
         materials: Dict[str, List[List[str]]] = {}
@@ -437,6 +430,11 @@ class VisualizationController:
         num_colors = Performance.COLORMAP_COLOR_LIMIT
         
         for idx, material in enumerate(concentrations_list.keys()):
+            if idx == num_colors * len(colormaps):
+                logger.warning(
+                    f"More than {num_colors * len(colormaps)} materials: "
+                    f"colors will repeat starting from material '{material}'"
+                )
             map_idx = (idx // num_colors) % len(colormaps)
             colormap = colormaps[map_idx]
             color_idx = idx % num_colors 
@@ -445,4 +443,14 @@ class VisualizationController:
         logger.debug(f"Generated colors for {len(concentrations_list)} materials using "
                     f"{min(3, (len(concentrations_list) + num_colors - 1) // num_colors)} extended tab20 colormaps")
         return material_colors
+    
+    def _resolve_orientation(self, num_rows: int, num_cols: int) -> Tuple[int, int, bool]:
+        """Return (effective_rows, effective_cols, is_switched).
+    
+        MPLACE convention: wider dimension is always horizontal (x-axis).
+        If num_cols > num_rows the axes are swapped for display.
+        """
+        if num_cols > num_rows:
+            return num_cols, num_rows, True
+        return num_rows, num_cols, False
     

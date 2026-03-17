@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
@@ -493,7 +493,6 @@ class VizView:
                 canvas = widget.canvas_ref
                 fig = canvas.figure
                 canvas.get_tk_widget().destroy()
-                canvas.get_renderer()
                 pyplot.close(fig)
                 del widget.canvas_ref
                 logger.debug("Canvas cleaned up")

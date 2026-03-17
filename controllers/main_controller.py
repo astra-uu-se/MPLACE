@@ -17,7 +17,7 @@
 # Orchestrates main window operations and coordinates other controllers.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 

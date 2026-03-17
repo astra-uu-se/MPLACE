@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
@@ -414,7 +414,7 @@ class MainView:
         self._mzn_timer_active = False
 
         if status == "err":
-            self.label_csv_loaded.config(text="MiniZinc execution failed")
+            self.label_csv_loaded.config(text=original_text)
             logger.error(f"MiniZinc execution failed: {payload}")
             messagebox.showerror("Model Execution Error",
                                  f"Failed to run {model_name} model.\n\n{str(payload)}")

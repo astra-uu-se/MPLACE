@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
@@ -317,7 +317,9 @@ class DznView:
             compounds_dict=self.drugs.get(),
             controls_dict=self.controls.get()
         )
-    
+        self.button_generate.config(state=tk.DISABLED, text='Generating...')
+        self.window.update_idletasks()
+        
         # Validate via controller
         errors = self.controller.validate_form_data(form_data)
     
@@ -355,6 +357,8 @@ class DznView:
         except Exception as e:
             logger.error(f"DZN generation failed: {e}")
             messagebox.showerror("Error", f"DZN generation failed:\n{str(e)}")
+        finally:
+            self.button_generate.config(state=tk.NORMAL, text='Generate *.dzn file')
     
     def _on_close(self) -> None:
         """Handle window close button."""

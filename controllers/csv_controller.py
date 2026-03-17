@@ -20,13 +20,13 @@
 # Coordinates file selection and writing through native dialog interfaces.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
 import logging
 from tkinter import filedialog
-from typing import List
+from typing import List, Optional
 
 from models.dto import CSVConversionRequest
 from models.constants import FileTypes
@@ -49,7 +49,7 @@ class CsvController:
         """Initialize CSV controller."""
         logger.info("CsvController initialized")
     
-    def export_pharmbio(self, csv_lines: List[str], suggested_name: str = '') -> str:
+    def export_pharmbio(self, csv_lines: List[str], suggested_name: str = '') -> Optional[str]:
         """
         Export in PharmBio CSV format.
     
@@ -160,6 +160,7 @@ class CsvController:
                 if i == 0:
                     return None   # cancelled before saving anything
                 else:
+                    logger.warning(f"Export stopped after {i+1} of {n} plates; already saved files were kept.")
                     break         # partial save — return what was saved so far
                                     
             if isinstance(plater_csv_content, str):

@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to running MiniZinc models
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.3.2
+# Last Revision: March 2026
 #
 
 
@@ -25,17 +25,29 @@ import sys
 import time
 import logging
 import subprocess
-
 from typing import List, Dict, Tuple, Union, Sequence
 
-from models.constants import PathsIni
-
+from models.constants import PathsIni, Messages
 
 logger = logging.getLogger(__name__)
 
+def _build_command(minizinc_path: str, solver_config: str, model_file: str, data_file: str):
+    if solver_config == PathsIni.FILE_ERROR_PLACEHOLDER:
+        solver_config = ' --solver gecode'
+        logger.info('Using Gecode, 1 thread')
+    else:
+        solver_config = ' --param-file-no-push ' + solver_config
+    
+    if sys.platform.startswith('win'):
+        cmd = [minizinc_path, solver_config, model_file, data_file]
+    else:
+        cmd = [minizinc_path + solver_config + ' ' + model_file + ' ' + data_file]
+    
+    return cmd
+
 
 def run_model(minizinc_path: str, solver_config: str, model_file: str, data_file: str) -> str:
-    """Execute MiniZinc command and return output.
+    """Execute MiniZinc command and return stdout text.
     
     Args:
         minizinc_path: Path to MiniZinc executable
@@ -49,51 +61,52 @@ def run_model(minizinc_path: str, solver_config: str, model_file: str, data_file
     Raises:
         RuntimeError: If MiniZinc command execution fails
     """
-    if solver_config == PathsIni.FILE_ERROR_PLACEHOLDER:
-        solver_config = ' --solver gecode'
-        logger.info('Using Gecode, 1 thread')
-    else:
-        solver_config = ' --param-file-no-push ' + solver_config
-    
-    if sys.platform.startswith('win'):
-        cmd = [minizinc_path, solver_config, model_file, data_file]
-    else:
-        cmd = [minizinc_path + solver_config + ' ' + model_file + ' ' + data_file]
-    
-    print('command:', cmd)
+    cmd = _build_command(minizinc_path, solver_config, model_file, data_file)
     logger.info(f"Executing MiniZinc: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
-    
+
     start_time = time.time()
-    
+
     try:
         process = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
         output, errors = process.communicate()
-        output = output.decode('utf-8').strip()
-        errors = errors.decode('utf-8').strip()
-        process.kill()
+
+    except FileNotFoundError as e:
+        logger.error("MiniZinc executable not found: %s", minizinc_path)
+        raise FileNotFoundError(
+            f"MiniZinc executable not found: {minizinc_path}. "
+            f"Check paths.ini and ensure MiniZinc is installed."
+        ) from e
     except (subprocess.SubprocessError, OSError) as e:
-        logger.error(f"MiniZinc execution failed: {e}")
+        logger.error("MiniZinc execution failed: %s", e)
         raise RuntimeError(f"Failed to execute MiniZinc command: {e}") from e
 
     elapsed = time.time() - start_time
-    
-    # Check process return code
+    output = output.strip()
+    errors = errors.strip()
+
     if process.returncode != 0:
-        error_msg = f"MiniZinc failed with exit code {process.returncode}"
+        hint = Messages.MINIZINC_EXIT_CODE_HINTS.get(process.returncode, "No additional diagnostic hint available.")
+        message_parts = [
+            f"MiniZinc failed with exit code {process.returncode}.",
+            hint
+        ]
         if errors:
-            error_msg += f": {errors.strip()}"
+            message_parts.append(f"stderr: {errors}")
+        if output:
+            message_parts.append(f"stdout: {output}")
+        error_msg = "\n".join(message_parts)
+
         logger.error(error_msg)
         raise RuntimeError(error_msg)
-    
+
     if errors:
-        print(errors)  # User sees warnings/errors
-        logger.warning(f"MiniZinc stderr: {errors}")
-    if output:
-        print(output)  # User sees output
-        logger.debug(f"MiniZinc stdout: {output}")
+        logger.warning("MiniZinc stderr: %s", errors)
 
-    print(f'MiniZinc completed in {elapsed:.1f} seconds')
-    logger.info(f"MiniZinc execution completed in {elapsed:.1f} seconds")
-
+    logger.info("MiniZinc execution completed in %.1f seconds", elapsed)
     return output

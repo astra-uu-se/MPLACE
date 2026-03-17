@@ -17,7 +17,7 @@
 # Handles validation and generation of DZN files.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2.6
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
@@ -70,7 +70,8 @@ class DznController:
             errors.append("All fields must be filled in")
         
         # Validate plate dimensions
-        dim_errors = validate_plate_dimensions(data.num_rows, data.num_cols)
+        if data.num_cols != '' and data.num_rows != '':
+            dim_errors = validate_plate_dimensions(data.num_rows, data.num_cols)
         errors.extend(dim_errors)
         
         # Parse and validate compounds - initialize to empty dict
@@ -173,7 +174,7 @@ class DznController:
             return ''
         
         try:
-            with open(path, "w") as dzn_file:
+            with open(path, "w", encoding="utf-8") as dzn_file:
                 dzn_file.write(content)
             
             logger.info(f"DZN file saved: {path}, {len(content)} characters")

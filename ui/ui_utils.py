@@ -16,7 +16,7 @@
 # Description:  Utilities related to UI manipulations that can be used with multiple views
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.0
+# Version: 1.3.2
 # Last Revision: March 2026
 #
 
