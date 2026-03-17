@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to visualization of layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -45,6 +45,7 @@ def transform_coordinate(well: str) -> List[int]:
     Example:
         transform_coordinate('A1') returns [0, 0]
         transform_coordinate('B3') returns [1, 2]
+        transform_coordinate('Aa14')returns [26,14]
     
     Note:
         This function is cached for performance when processing repeated well coordinates.
@@ -130,7 +131,9 @@ def find_all_plates_concentrations(text_array: List[str]) -> Tuple[Dict[str,List
                     'plateID,well,cmpdname,CONCuM,cmpdnum,VOLuL'
         
     Returns:
-        Two dictionaries as a tuple
+        Tuple of:
+              - layouts_dict: {plateID: list of [well, material, conc, ...] rows}
+              - concentrations_list: {material_name: sorted list of unique concentration values}
     """
     layouts_dict: Dict[str, List[List[str]]] = {}
     concentrations_list: Dict[str, List[Union[str, float, int]]] = {}

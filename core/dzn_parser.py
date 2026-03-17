@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to DZN parsing
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.3.3
+# Last Revision: March 2026
 #
 
 import re
@@ -104,41 +104,63 @@ def __retrieve_dzn_param__(text: str, param_string: str) -> str:
 
 
 def __parse_control_string__(control_string: str) -> str:
-    """Parse control string and generate control names.
-    
+    """Parse the control_names expression from a DZN file into a flat list of names.
+
+    The DZN control_names field can take two forms that this function handles:
+
+    1. A plain MiniZinc list literal, e.g.:
+           ["pos", "neg", "DMSO"]
+       These sections are separated by '++' and parsed directly with ast.literal_eval.
+
+    2. A MiniZinc array comprehension with a numeric range, e.g.:
+           ["ctrl_\\(i) | i in 1..8"]
+       This encodes names like ctrl_1, ctrl_2, ..., ctrl_8.
+       Detected by the presence of '..' in the section.
+
+    When multiple sections are joined by '++', the resulting names are concatenated
+    in order into a single flat list.
+
     Args:
-        control_string: String containing control definitions
-        
+        control_string: The raw value of the control_names DZN parameter,
+                        with all whitespace already stripped by the caller.
+
     Returns:
-        Stringified list of parsed control names, or '[]' if parsing fails.
-        Use ast.literal_eval() to convert back to a Python list.
+        Stringified Python list of control name strings (e.g. "['pos', 'ctrl_1']"),
+        or '[]' if any section fails to parse.
+        Caller must use ast.literal_eval() to convert back to a Python list.
     """
     control_names = []
     logger.debug(f"Parsing control string: {control_string[:50]}...")
     
     for section in control_string.split('++'):
         if section.find('..') == -1:
+            # Plain list literal: ["pos", "neg"]
             try:
                 control_names.extend(ast.literal_eval(section))
             except (ValueError, SyntaxError):
                 logger.warning(f"Failed to parse control section: {section}")
                 return '[]'
         else:
+            # Array comprehension: ["ctrl_\(i) | i in 1..8"]
+            # Strip the outer brackets added by MiniZinc's ++ concatenation
             try:
                 section = section[1:-1]
 
+                # Locate the \(i) placeholder — the loop variable in the name template
                 pos_index_s = section.find('\\(')
                 pos_index_e = section.find(')', pos_index_s)
 
                 index_str = section[pos_index_s + 2:pos_index_e]
 
+                # Locate the range bounds after '| i in START..END'
                 pos_iin = section.find('|' + index_str + 'in')
                 pos_nii = pos_iin + len(index_str) + 3
                 pos_dot = section.find('..')
 
                 i_start = int(section[pos_nii:pos_dot])
                 i_end = int(section[pos_dot + 2:])
-
+                
+                # Build one name per index by substituting i into the template
                 for i in range(i_start, i_end + 1):
                     control_names.append(
                         section[1:pos_index_s] + str(i) + section[pos_index_e + 1:pos_iin-1])

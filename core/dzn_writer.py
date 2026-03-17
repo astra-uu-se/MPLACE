@@ -1,4 +1,4 @@
-# Copyright 2025 Ramiz Gindullin.
+# Copyright 2026 Ramiz Gindullin.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # Description:  DZN text generation logic
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.0
-# Last Revision: October 2025
+# Version: 1.3.3
+# Last Revision: March 2026
 #
 
 from models.dto import DznBuildParams
@@ -55,7 +55,7 @@ def build_dzn_text(params: DznBuildParams) -> Tuple[str, List[str]]:
     dzn_txt += 'num_rows = ' + params.num_rows + ';\n'
     dzn_txt += 'num_cols = ' + params.num_cols + ';\n\n'
 
-    if params.inner_empty_edge == False:  # no printing for PLAID
+    if params.inner_empty_edge == False:  # no printing for PLAID (this parameter only exists in the COMPD model)
         dzn_txt += 'inner_empty_edge_input = ' + str(params.inner_empty_edge).lower() + ';\n'
     dzn_txt += 'size_empty_edge = ' + params.size_empty_edge + ';\n'
     dzn_txt += 'size_corner_empty_wells = ' + params.size_corner_empty_wells + ';\n\n'
