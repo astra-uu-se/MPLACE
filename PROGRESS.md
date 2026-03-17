@@ -23,7 +23,7 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Optimize Matplotlib Performance  | Done           | Cached pyplot.get_cmap('tab20') at module level as COLORMAP_TAB20 in WindowVisuals.py; eliminates repeated colormap lookups and improves rendering performance. |
 | Low      | Implement Logging Framework      | Done           | Comprehensive logging system with dual approach: preserved print() statements for user-visible feedback while adding structured logging for debugging. PNG save paths now logged and printed for user visibility. Log file (mplace.log) captures all operations with timestamps. Logging levels: DEBUG for technical details, INFO for major operations, WARNING for recoverable issues, ERROR for failures. |
 | Low      | Add Progress Indicators          | Done           | Long-running MiniZinc operations show feedback the elapsed time and, if applicable, the process timeouts. |
-| Low      | Improve Error Diagnostics        | Not done       | MiniZinc failures could provide more specific diagnostic information; enhance subprocess error handling with context-specific guidance. |
+| Low      | Improve Error Diagnostics        | Done           | MiniZinc failures provide more specific diagnostic information which is now shown to the user; enhanced subprocess error handling with context-specific guidance. |
 | Low      | Add Bounds Checking              | Not done       | Plate dimensions and layout parameters lack validation against reasonable limits; add input validation with helpful error messages. |
 | Low      | Enhance Documentation            | Not done       | Complex algorithms like parse_control_string need more detailed inline comments; add concrete usage examples in docstrings. |
 | Low      | Add Unit Test Coverage           | Not done       | No apparent test coverage for utility functions and data processing; create a test suite for core functionality. |
@@ -53,4 +53,4 @@ This progress tracking file should be updated after each significant change or b
 
 ---
 
-*Last updated: March 11, 2026 (added progress indicators)*
+*Last updated: March 11, 2026 ("Improve Error Diagnostics" task is done)*
