@@ -97,7 +97,7 @@ class CsvController:
             raise RuntimeError(f"Unexpected error: {e}") from e
         
     
-    def export_plater(self, csv_lines: List[str], rows: str, cols: str) -> Optional(List[str]):
+    def export_plater(self, csv_lines: List[str], rows: str, cols: str) -> Optional[List[str]]:
         """Export in PLATER CSV format.
     
         PLATER format is a plate-shaped CSV used by the R package plater for reading,
