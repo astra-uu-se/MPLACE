@@ -306,10 +306,10 @@ class VisualizationController:
                 ) for concentration in concentrations]
         # Create scatter plot showing size gradient with consistent proportions
         if num_conc == 1:
-            x_positions = np.arange(1) + 0.5
+            x_positions = np.array([0.5])
         else:
-            x_positions = np.arange(start = 0.1, stop = 0.90001, step = 0.8 / (num_conc - 1))
-        y_positions = np.ones(num_conc) * 0.5
+            x_positions = np.linspace(0.1, 0.9, num_conc)
+        y_positions = np.ones(len(x_positions)) * 0.5
         
         marker = self._select_marker(material_name, viz_state)
         
@@ -403,8 +403,15 @@ class VisualizationController:
                        material_name: str,
                        viz_state: VisualizationState
                        ) -> str:
-        """Marker selection based on the material.
-           Use circles for controls, squares for other materials
+        """Select marker shape based on whether the material is a control.
+
+        Args:
+            material_name: Name of the material to select a marker for.
+            viz_state: Visualization state containing the list of control names.
+
+        Returns:
+            Matplotlib marker code: 'o' (circle) for controls, 's' (square) for
+            all other materials.
         """
         if material_name in viz_state.control_names:
             return 'o'
