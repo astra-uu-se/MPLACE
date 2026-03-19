@@ -212,6 +212,9 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     drugs_matrix: List[str] = []
     concentrations_matrix: List[str] = []
     
+    # Removing the blank lines (line == '\n' happens on Windows machines)
+    layout_text_array = [line for line in layout_text_array if line.strip() != '' and line.strip() != '\n']
+    
     cols = len(layout_text_array[0].split(','))
     
     is_drugs = False
@@ -223,11 +226,6 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
     current_section = ''
     
     for line in layout_text_array:
-        if line.strip() == '':
-            continue
-        elif line == '\n':  # happens on Windows machines
-            continue
-        
         elements = line.strip().split(',')
         
         if len(elements) != cols:
