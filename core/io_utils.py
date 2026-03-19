@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -137,7 +137,7 @@ def read_csv_file(file_path: str) -> List[str]:
         
         line_count = len(layout_text_array)
         logger.info(f"CSV file loaded: {file_path}, {line_count} data lines")
-        return layout_text_array  # Remove header
+        return layout_text_array
     except (ValueError) as e:
         logger.error(f"Failed to read CSV file: {file_path}, error: {e}")
         raise e
@@ -369,7 +369,7 @@ def convert_pharmbio_to_plater_plate(input_data: CSVConversionRequest) -> str:
     lines = input_data.csv_lines
     
     drugs_matrix = [['' for j in range(cols+1)] for i in range(rows+1)]
-    concentration_matrix = [['0' for j in range(cols+1)] for i in range(rows+1)]
+    concentration_matrix = [['' for j in range(cols+1)] for i in range(rows+1)]
     
     drugs_matrix[0][0] = PlaterFormat.DRUGS_LABEL
     concentration_matrix[0][0] = PlaterFormat.CONCENTRATIONS_LABEL
@@ -395,7 +395,19 @@ def convert_pharmbio_to_plater_plate(input_data: CSVConversionRequest) -> str:
 
 
 def plater_matrix_to_string(matrix: List[List[str]]) -> str:
-    """Convert plater matrix into a string to write
+    """Convert a Plater matrix into a CSV-formatted string.
+
+    Each row is joined with commas, with rows separated by newlines.
+    The last element in each row is written without a trailing comma.
+
+    Args:
+        matrix: 2D list of strings representing the Plater layout,
+                where matrix[0] is the header row (label + column indices)
+                and matrix[i][0] is the row label (e.g. 'A', 'B', ...).
+
+    Returns:
+        A single string of CSV-formatted lines ready to write to disk,
+        with each row terminated by a newline character.
     """
     text: str = ''
     for line in matrix:

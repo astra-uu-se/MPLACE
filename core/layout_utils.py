@@ -152,4 +152,11 @@ def find_all_plates_concentrations(text_array: List[str]) -> Tuple[Dict[str,List
                 concentrations_list[array[2]].append(to_number_if_possible(array[3]))
         else:
             concentrations_list[array[2]] = [to_number_if_possible(array[3])]
+    
+    # Sort concentrations numerically (or lexicographically for string values)
+    for material in concentrations_list:
+        concentrations_list[material].sort(
+            key=lambda x: (isinstance(x, str), x)
+        )
+    
     return layouts_dict, concentrations_list

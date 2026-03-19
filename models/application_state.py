@@ -104,10 +104,15 @@ class ApplicationState:
             self.recent_csv = [p for p in self.recent_csv if p != path]
             self._save_recent(RecentFiles.RECENT_CSV_PATH, self.recent_csv)
     
-    def reset_file_state(self) -> None:
-        """Reset file paths to empty state."""
+    def reset(self) -> None:
+        """Reset all transient state to defaults (preserves recent files)."""
         self.dzn_file_path = ''
         self.csv_file_path = ''
+        self.num_rows = PlateDefaults.ROWS
+        self.num_cols = PlateDefaults.COLS
+        self.control_names = PlateDefaults.CONTROL_NAMES
+        self.use_compd = False
+        logger.debug("ApplicationState reset to defaults")
     
     @staticmethod
     def _push_recent(path: str, lst: List[str]) -> List[str]:

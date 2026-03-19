@@ -16,7 +16,7 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -65,7 +65,14 @@ class UI:
 
 
 class Alphabet:
-    # Constants for coordinate transformation
+    """Letter sequences used for well-coordinate encoding and display.
+
+    Well rows are addressed with capital letters first (A–Z), then two-letter
+    combinations where the first letter is capital and the second is lowercase
+    (Aa, Ab, …, Az, Ba, …).  Keeping the two sequences as separate lists
+    (rather than a single string) lets transform_coordinate and transform_index
+    call .index() on each list independently without slicing.
+    """
     LETTERS_CAPITAL: List[str] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K",
                                   "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
     LETTERS_LOWERCASE: List[str] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
@@ -184,7 +191,7 @@ class WindowConfig:
     # Window titles
     TITLE_MAIN = "MPLACE"
     TITLE_DZN_GENERATOR = "Generate *.dzn file"
-    TITLE_VISUALIZER = "Visualize GUI"
+    TITLE_VISUALIZER = "Layout Visualization"
     
     # Window positions (x, y offsets)
     DZN_WINDOW_X = 30

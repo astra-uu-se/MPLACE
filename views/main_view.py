@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -614,6 +614,8 @@ class MainView:
     
     def _set_program_state_to_default(self) -> None:
         """Reset all form fields to defaults."""
+        
+        self.controller.state.reset()
         
         # Clear loaded files
         self.dzn_file_path.set('')

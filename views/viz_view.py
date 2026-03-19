@@ -57,7 +57,7 @@ class VizView:
     
     def __init__(
         self,
-        parent: tk.Tk,
+        parent: tk.Toplevel,
         viz_controller: VisualizationController,
         csv_controller: CsvController
     ):
@@ -74,7 +74,7 @@ class VizView:
         self.csv_controller = csv_controller
         
         # Will be set when window is created
-        self.window: Optional[tk.Tk] = None
+        self.window: Optional[tk.Toplevel] = None
         self.figures_to_save: List[Tuple[Figure, str]] = []
         self.material_scales: List[Figure] = []
         
@@ -421,7 +421,7 @@ class VizView:
                 initialfile=base + '.png'
             )
             if not path:
-                messagebox.showwarning("Warning", "User cancelled saving on plate {i+1} out of {n}")
+                messagebox.showwarning("Warning", f"User cancelled saving on plate {i+1} out of {n}")
                 logger.info(f"User cancelled saving on plate {i+1}/{n}")
                 return
 

@@ -17,7 +17,7 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -26,7 +26,6 @@ import ast
 import math
 import numpy as np
 import matplotlib as mpl
-from matplotlib import pyplot as plt
 from typing import List, Dict, Any, Union, Tuple
 
 from models.csv_data import VisualizationState
@@ -195,7 +194,6 @@ class VisualizationController:
             plate_data: List of CSV rows [well_coord, material, concentration]
             viz_state: Visualization state with color and concentration mappings
         """
-        from models.constants import Visualization
         from core.layout_utils import transform_coordinate, to_number_if_possible
     
         # Determine if orientation is switched

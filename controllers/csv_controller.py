@@ -71,7 +71,7 @@ class CsvController:
         
         logger.info(f"Exporting PharmBio CSV with suggested name: {suggested_name}")
     
-        # Ensure suggested_name doesn't have .csv extension (write_csv_file adds it)
+        # Ensure suggested_name must not have .csv extension
         if suggested_name.endswith('.'+FileTypes.CSV):
             suggested_name = suggested_name[:-4]
         

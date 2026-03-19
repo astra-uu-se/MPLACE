@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to running MiniZinc models
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -32,6 +32,30 @@ from models.constants import PathsIni, Messages
 logger = logging.getLogger(__name__)
 
 def _build_command(minizinc_path: str, solver_config: str, model_file: str, data_file: str):
+    """Build the platform-appropriate MiniZinc shell command.
+
+    On Windows, arguments are passed as a proper list so that subprocess can
+    quote paths correctly.  On all other platforms the arguments are
+    concatenated into a single string, which is required because the solver
+    config is embedded as a flag string (e.g. ' --solver gecode') rather than
+    a standalone path, and subprocess with shell=True on POSIX expects a single
+    string in that case.
+
+    If solver_config equals PathsIni.FILE_ERROR_PLACEHOLDER (i.e. no .mpc file
+    was found), the function falls back to Gecode with a single thread.
+
+    Args:
+        minizinc_path: Path to the MiniZinc executable (or 'minizinc' if on PATH)
+        solver_config: Path to a .mpc solver configuration file, or
+                       PathsIni.FILE_ERROR_PLACEHOLDER to use the Gecode default
+        model_file: Path to the .mzn model file
+        data_file: Path to the .dzn data file
+
+    Returns:
+        A list suitable for passing to subprocess.Popen with shell=True:
+        - On Windows: [minizinc_path, solver_flags, model_file, data_file]
+        - On POSIX:   [full_command_string]
+    """
     if solver_config == PathsIni.FILE_ERROR_PLACEHOLDER:
         solver_config = ' --solver gecode'
         logger.info('Using Gecode, 1 thread')

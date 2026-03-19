@@ -16,7 +16,7 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 
 import tkinter as tk
