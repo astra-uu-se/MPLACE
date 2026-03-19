@@ -337,7 +337,7 @@ def extract_csv_text(text: str) -> List[str]:
     return extracted_lines
 
 
-def convert_pharmbio_to_plater(input_data: CSVConversionRequest) -> str:
+def convert_pharmbio_to_plater(input_data: CSVConversionRequest) -> List[str]:
     """Convert CSV-formatted text from PharmBio format to Plater format
     
     Args:
