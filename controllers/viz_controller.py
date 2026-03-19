@@ -56,8 +56,11 @@ class VisualizationController:
         ]
         
         # Assert bounds
-        assert Visualization.CONCENTRATION_SIZE_MIN < Visualization.CONCENTRATION_SIZE_MAX
-        assert FigureProperties.DPI > 0
+        if Visualization.CONCENTRATION_SIZE_MIN >= Visualization.CONCENTRATION_SIZE_MAX:
+            raise ValueError(f"Visualization.CONCENTRATION_SIZE_MIN must be lower than Visualization.CONCENTRATION_SIZE_MAX"
+                              + "({Visualization.CONCENTRATION_SIZE_MIN} < {Visualization.CONCENTRATION_SIZE_MAX})")
+        if FigureProperties.DPI <= 0:
+            raise ValueError(f"FigureProperties.DPI can not be non-positive ({FigureProperties.DPI})")
     
     def prepare_visualization(
         self,
