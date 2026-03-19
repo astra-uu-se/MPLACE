@@ -130,7 +130,7 @@ def read_csv_file(file_path: str) -> List[str]:
         ValueError: If CSV format is neither PharmBio nor valid Plater format
     """
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             layout_text_array = file.readlines()
         
         layout_text_array = convert_to_pharmbio_format(layout_text_array)
