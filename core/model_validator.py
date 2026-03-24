@@ -258,6 +258,7 @@ def _check_compounds_non_negative(q: _PlaidQuantities) -> Optional[_CheckResult]
 
 def _check_combinations_non_negative(_q: _PlaidQuantities) -> Optional[_CheckResult]:
     """Check that the combinations are not negative (always passed)
+       Combinations are deprecated, and the check is intentionally skipped
        
        Args:
            q: Computed model quantities
@@ -612,6 +613,7 @@ def _check_same_plate_distribution_compd(q: _CompdQuantities) -> Optional[_Check
                                    otherwise it returns a tuple that informs of the error:
                                    (Block/Warn flag, affected model/-s, the error message)
     """
+    # Single plate: trivially satisfiable, nothing to check.
     if not (q.replicates_on_same_plate and q.num_plates_lines > 1):
         return None
     if q.compounds == 0 or q.total_wells_line == 0:
