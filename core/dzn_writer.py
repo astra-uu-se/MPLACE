@@ -36,7 +36,7 @@ def build_dzn_text(params: DznBuildParams, verdict: ValidationVerdict) -> Tuple[
 
     Args:
         params: DznBuildParams object containing all form data and configuration flags
-        verdict: a list of messages pertaning on whether this file is compatible with various models
+        verdict: ValidationVerdict containing per-model compatibility status and diagnostic messages
 
     Returns:
         Tuple of (dzn_content_string, control_names_list)
@@ -56,7 +56,7 @@ def build_dzn_text(params: DznBuildParams, verdict: ValidationVerdict) -> Tuple[
     dzn_txt += 'num_rows = ' + params.num_rows + ';\n'
     dzn_txt += 'num_cols = ' + params.num_cols + ';\n\n'
 
-    if params.inner_empty_edge == False:  # no printing for PLAID (this parameter only exists in the COMPD model)
+    if not params.inner_empty_edge:  # no printing for PLAID (this parameter only exists in the COMPD model)
         dzn_txt += 'inner_empty_edge_input = ' + str(params.inner_empty_edge).lower() + ';\n'
     dzn_txt += 'size_empty_edge = ' + params.size_empty_edge + ';\n'
     dzn_txt += 'size_corner_empty_wells = ' + params.size_corner_empty_wells + ';\n\n'
@@ -70,7 +70,6 @@ def build_dzn_text(params: DznBuildParams, verdict: ValidationVerdict) -> Tuple[
     dzn_txt += 'replicates_on_different_plates = ' + str(params.flag_replicates_on_different_plates).lower() + ';\n'
     dzn_txt += 'replicates_on_same_plate = ' + str(params.flag_replicates_on_same_plate).lower() + ';\n\n'
 
-    # Rest of the function stays exactly the same...
     # Process compounds data
     nb_compounds = 0
     compound_concentrations: List[int] = []
@@ -150,7 +149,7 @@ def _build_header(verdict: ValidationVerdict) -> str:
     but they remain visible to humans and future MPLACE versions.
     
     Args:
-        verdict: a list of messages pertaning on whether this file is compatible with various models
+        verdict: ValidationVerdict containing per-model compatibility status and diagnostic messages
     
     Returns:
         a string which contains a commented header for the generated dzn file
