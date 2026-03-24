@@ -24,7 +24,7 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Implement Logging Framework      | Done           | Comprehensive logging system with dual approach: preserved print() statements for user-visible feedback while adding structured logging for debugging. PNG save paths now logged and printed for user visibility. Log file (mplace.log) captures all operations with timestamps. Logging levels: DEBUG for technical details, INFO for major operations, WARNING for recoverable issues, ERROR for failures. |
 | Low      | Add Progress Indicators          | Done           | Long-running MiniZinc operations show feedback the elapsed time and, if applicable, the process timeouts. |
 | Low      | Improve Error Diagnostics        | Done           | MiniZinc failures provide more specific diagnostic information which is now shown to the user; enhanced subprocess error handling with context-specific guidance. |
-| Low      | Add Bounds Checking              | Not done       | Plate dimensions and layout parameters lack validation against reasonable limits; add input validation with helpful error messages. |
+| Low      | Add Bounds Checking              | Done           | Plate dimensions and layout parameters are validated against reasonable limits which are introduced in COMPD, and PLAID; add input validation with helpful error messages. |
 | Low      | Enhance Documentation            | Done           | Complex algorithms like __parse_control_string__ have more detailed inline comments; added concrete usage examples in docstrings when necessary. |
 | Low      | Add Unit Test Coverage           | Not done       | No apparent test coverage for utility functions and data processing; create a test suite for core functionality. |
 | Low      | Add Integration Tests            | Not done       | No end-to-end testing of DZN → MiniZinc → CSV → Visualization workflow; add comprehensive integration test suite. |
@@ -53,4 +53,4 @@ This progress tracking file should be updated after each significant change or b
 
 ---
 
-*Last updated: March 17, 2026 ("Improve Error Diagnostics" and "Enhance Documentation" tasks are done)*
+*Last updated: March 24, 2026 ("Add Bounds Checking" task is done)*
