@@ -176,6 +176,10 @@ class Messages:
     WRITE_ERROR_TITLE = "File Write Error"
     WRITE_ERROR_TEXT = "Failed to save the file. Check disk space and permissions."
     
+    # DZN file validation messages
+    BLOCK = "BLOCK"
+    WARN  = "WARN"
+    
     # MiniZinc exit codes
     MINIZINC_EXIT_CODE_HINTS = {
         1: "MiniZinc reported an error while parsing or solving the model.",

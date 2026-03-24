@@ -17,7 +17,7 @@
 # Handles validation and generation of DZN files.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -25,14 +25,17 @@ import logging
 from typing import List, Tuple
 from tkinter import filedialog
 
-from models.dzn_data import DznFormData, DznBuildParams
+from models.dzn_data import DznFormData
 from models.constants import FileTypes
+from models.dto import ValidationVerdict, DznBuildParams
 from core.validators import (
     parse_materials_dict,
     validate_materials_schema,
     validate_plate_dimensions
 )
 from core.dzn_writer import build_dzn_text
+from core.model_validator import validate_model_compatibility
+
 
 logger = logging.getLogger(__name__)
 
@@ -103,12 +106,13 @@ class DznController:
         
         return errors
     
-    def generate_dzn_content(self, data: DznFormData) -> Tuple[str, List[str]]:
+    def generate_dzn_content(self, data: DznFormData, verdict: ValidationVerdict) -> Tuple[str, List[str]]:
         """
         Generate DZN file content from form data.
         
         Args:
             data: Validated form data
+            verdict: a list of messages pertaning on whether this file is compatible with various models
             
         Returns:
             Tuple of (dzn_text, control_names_list)
@@ -141,7 +145,7 @@ class DznController:
         )
         
         try:
-            dzn_text, control_names = build_dzn_text(params)
+            dzn_text, control_names = build_dzn_text(params, verdict)
             logger.info(f"DZN content generated successfully with {len(control_names)} controls")
             return dzn_text, control_names
             
@@ -184,3 +188,46 @@ class DznController:
         except (IOError, OSError) as e:
             logger.error(f"DZN write failed: {path}, error: {e}")
             raise IOError(f"Failed to write DZN file: {str(e)}") from e
+
+    def validate_model_compat(self, data: DznFormData) -> ValidationVerdict:
+        """
+        Run model-compatibility checks against PLAID and COMPD constraint logic.
+
+        Must be called after validate_form_data() passes, as it assumes
+        all fields are parseable.
+
+        Args:
+            data: Validated form data
+
+        Returns:
+            ValidationVerdict with per-model blocked status and messages
+        """
+        logger.debug("Running model compatibility validation")
+
+        compounds_dict, _ = parse_materials_dict(data.compounds_dict)
+        controls_dict, _  = parse_materials_dict(data.controls_dict)
+
+        params = DznBuildParams(
+            num_rows=data.num_rows,
+            num_cols=data.num_cols,
+            inner_empty_edge=data.inner_empty_edge,
+            size_empty_edge=data.size_empty_edge,
+            size_corner_empty_wells=data.size_corner_empty_wells,
+            horizontal_cell_lines=data.horizontal_cell_lines,
+            vertical_cell_lines=data.vertical_cell_lines,
+            flag_allow_empty_wells=data.flag_allow_empty_wells,
+            flag_concentrations_on_different_rows=data.flag_concentrations_on_different_rows,
+            flag_concentrations_on_different_columns=data.flag_concentrations_on_different_columns,
+            flag_replicates_on_different_plates=data.flag_replicates_on_different_plates,
+            flag_replicates_on_same_plate=data.flag_replicates_on_same_plate,
+            compounds_dict=compounds_dict,
+            controls_dict=controls_dict
+        )
+
+        verdict = validate_model_compatibility(params)
+        logger.info(
+            f"Model compat: PLAID={'BLOCKED' if verdict.plaid.blocked else 'OK'}, "
+            f"COMPD={'BLOCKED' if verdict.compd.blocked else 'OK'}"
+        )
+        return verdict
+    

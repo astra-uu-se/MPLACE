@@ -17,8 +17,8 @@
 # Represents the form data needed to generate a DZN file.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.2
-# Last Revision: January 2026
+# Version: 1.3.3
+# Last Revision: March 2026
 #
 
 from dataclasses import dataclass
@@ -64,30 +64,3 @@ class DznFormData:
     flag_replicates_on_same_plate: bool
     compounds_dict: str
     controls_dict: str
-
-
-@dataclass
-class DznBuildParams:
-    """Parameters for building DZN file content."""
-    num_rows: str
-    num_cols: str
-    inner_empty_edge: bool
-    size_empty_edge: str
-    size_corner_empty_wells: str
-    horizontal_cell_lines: str
-    vertical_cell_lines: str
-    flag_allow_empty_wells: bool
-    flag_concentrations_on_different_rows: bool
-    flag_concentrations_on_different_columns: bool
-    flag_replicates_on_different_plates: bool
-    flag_replicates_on_same_plate: bool
-    compounds_dict: Dict[str, List[Any]]
-    controls_dict: Dict[str, List[Any]]
-    
-    def get_num_rows_int(self) -> int:
-        """Convert num_rows to integer."""
-        return int(self.num_rows)
-    
-    def get_num_cols_int(self) -> int:
-        """Convert num_cols to integer."""
-        return int(self.num_cols)

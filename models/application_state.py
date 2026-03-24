@@ -17,7 +17,7 @@
 # Centralizes all application state that was previously scattered across tk.StringVar variables.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 

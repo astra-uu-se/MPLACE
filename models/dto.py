@@ -16,7 +16,7 @@
 # Description: Data Transfer Objects for MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.1
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
@@ -30,7 +30,7 @@ make interfaces explicit, and improve code maintainability.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Any
 
 
 @dataclass(frozen=True)
@@ -55,37 +55,6 @@ class DznGenerationResult:
     rows: str
     cols: str
     control_names: str  # Stringified list for UI callback compatibility
-
-
-@dataclass(frozen=True)
-class DznBuildParams:
-    """Parameters for DZN content generation.
-    
-    Encapsulates all the form data and configuration flags needed
-    to build a MiniZinc DZN file. Replaces the long parameter list
-    in build_dzn_text() for better maintainability and testability.
-    """
-    # Plate dimensions
-    num_rows: str
-    num_cols: str
-    
-    # Layout configuration
-    inner_empty_edge: bool
-    size_empty_edge: str
-    size_corner_empty_wells: str
-    horizontal_cell_lines: str
-    vertical_cell_lines: str
-    
-    # Constraint flags
-    flag_allow_empty_wells: bool
-    flag_concentrations_on_different_rows: bool
-    flag_concentrations_on_different_columns: bool
-    flag_replicates_on_different_plates: bool
-    flag_replicates_on_same_plate: bool
-    
-    # Material definitions
-    compounds_dict: Dict[str, List]  # {'Drug': [replicates, 'conc1', 'conc2', ...]}
-    controls_dict: Dict[str, List]   # {'Control': [replicates, 'conc1', ...]}
 
 
 @dataclass(frozen=True)
@@ -136,3 +105,66 @@ class CSVConversionRequest:
     rows: str
     cols: str
     csv_lines: List[str]
+
+
+@dataclass(frozen=True)
+class DznBuildParams:
+    """Parameters for building DZN file content."""
+    num_rows: str
+    num_cols: str
+    
+    # Layout configuration
+    inner_empty_edge: bool
+    size_empty_edge: str
+    size_corner_empty_wells: str
+    horizontal_cell_lines: str
+    vertical_cell_lines: str
+    
+    # Constraint flags
+    flag_allow_empty_wells: bool
+    flag_concentrations_on_different_rows: bool
+    flag_concentrations_on_different_columns: bool
+    flag_replicates_on_different_plates: bool
+    flag_replicates_on_same_plate: bool
+    compounds_dict: Dict[str, List[Any]]  # {'Drug': [replicates, 'conc1', 'conc2', ...]}
+    controls_dict: Dict[str, List[Any]]   # {'Control': [replicates, 'conc1', ...]}
+    
+    def get_num_rows_int(self) -> int:
+        """Convert num_rows to integer."""
+        return int(self.num_rows)
+    
+    def get_num_cols_int(self) -> int:
+        """Convert num_cols to integer."""
+        return int(self.num_cols)
+    
+    def get_size_empty_edge_int(self) -> int:
+        return int(self.size_empty_edge)
+
+    def get_size_corner_empty_wells_int(self) -> int:
+        return int(self.size_corner_empty_wells)
+
+    def get_horizontal_cell_lines_int(self) -> int:
+        return int(self.horizontal_cell_lines)
+
+    def get_vertical_cell_lines_int(self) -> int:
+        return int(self.vertical_cell_lines)
+    
+@dataclass(frozen=True)
+class ModelVerdict:
+    """Validation result for a single MiniZinc model.
+    """
+    blocked: bool
+    messages: List[str]  # each prefixed with "BLOCK: " or "WARN: "
+
+@dataclass(frozen=True)
+class ValidationVerdict:
+    """Returns the validation verdicts (blocked flags and messages) for both models
+    """
+    plaid: ModelVerdict
+    compd: ModelVerdict
+    
+    def both_blocked(self) -> bool:
+        return self.plaid.blocked and self.compd.blocked
+    
+    def any_issues(self) -> bool:
+        return bool(self.plaid.messages or self.compd.messages)

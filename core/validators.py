@@ -16,7 +16,7 @@
 # Description:  Various supplementary utilities related to validating material dictionaries
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.2
+# Version: 1.3.3
 # Last Revision: March 2026
 #
 
