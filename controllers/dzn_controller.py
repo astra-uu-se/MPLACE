@@ -182,7 +182,6 @@ class DznController:
                 dzn_file.write(content)
             
             logger.info(f"DZN file saved: {path}, {len(content)} characters")
-            print(f"DZN saved successfully: {path}")
             return path
             
         except (IOError, OSError) as e:

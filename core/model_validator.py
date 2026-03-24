@@ -32,7 +32,7 @@
 
 import math
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 from models.dto import DznBuildParams, ValidationVerdict, ModelVerdict
@@ -316,7 +316,7 @@ def _check_h_lines_positive(q: _PlaidQuantities) -> Optional[_CheckResult]:
     return None
 
 def _check_rows_line_positive(q: _PlaidQuantities) -> Optional[_CheckResult]:
-    """Check that the calculated number of rows in a line is not negative
+    """Check that the calculated number of rows in a line is positive
        
        Args:
            q: Computed model quantities
@@ -616,19 +616,22 @@ def _check_same_plate_distribution_compd(q: _CompdQuantities) -> Optional[_Check
     # Single plate: trivially satisfiable, nothing to check.
     if not (q.replicates_on_same_plate and q.num_plates_lines > 1):
         return None
+
     if q.compounds == 0 or q.total_wells_line == 0:
         return None
+
     compounds_per_plate = math.ceil(q.compounds / q.num_plates_lines)
     # Estimate max load: worst case is ceil(compounds/plates) compounds on one plate
     # This is approximate — exact check is item 22 (COMPD-internal)
-    compound_indices_on_heaviest = list(range(compounds_per_plate))
-    max_load = sum(
-        q.compound_replicates[i] * q.compound_concentrations[i]
-        for i in compound_indices_on_heaviest
-        if i < q.compounds
+    per_compound_load = sorted(
+        (q.compound_replicates[i] * q.compound_concentrations[i] for i in range(q.compounds)),
+        reverse=True
     )
+    
+    max_load = sum(per_compound_load[:compounds_per_plate])
+    
     if max_load > q.total_wells_line:
-        return _CheckResult(Messages.BLOCK, "COMPD",
+        return _CheckResult(Messages.WARN, "COMPD",
             f"COMPD: replicates_on_same_plate is set and the estimated maximum compound load "
             f"per plate ({max_load}) may exceed plate capacity ({q.total_wells_line}). "
             f"COMPD will report a definitive error if distribution fails.")
