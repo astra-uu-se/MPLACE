@@ -182,5 +182,9 @@ class MiniZincController:
                 data = json.load(f)
             ms = data.get("time-limit")
             return int(ms) // 1000 if ms is not None else None
-        except Exception:
+        except (FileNotFoundError, PermissionError) as e:
+            logger.warning(f"Could not open solver config '{mpc_path}': {e}")
+            return None
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"Could not parse solver config '{mpc_path}': {e}")
             return None

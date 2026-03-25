@@ -122,30 +122,9 @@ class DznController:
         """
         logger.info("Generating DZN content")
         
-        # Parse materials (already validated)
-        compounds_dict, _ = parse_materials_dict(data.compounds_dict)
-        controls_dict, _ = parse_materials_dict(data.controls_dict)
-        
         # Create build parameters
-        params = DznBuildParams(
-            num_rows=data.num_rows,
-            num_cols=data.num_cols,
-            inner_empty_edge=data.inner_empty_edge,
-            size_empty_edge=data.size_empty_edge,
-            size_corner_empty_wells=data.size_corner_empty_wells,
-            horizontal_cell_lines=data.horizontal_cell_lines,
-            vertical_cell_lines=data.vertical_cell_lines,
-            flag_allow_empty_wells=data.flag_allow_empty_wells,
-            flag_concentrations_on_different_rows=data.flag_concentrations_on_different_rows,
-            flag_concentrations_on_different_columns=data.flag_concentrations_on_different_columns,
-            flag_replicates_on_different_plates=data.flag_replicates_on_different_plates,
-            flag_replicates_on_same_plate=data.flag_replicates_on_same_plate,
-            compounds_dict=compounds_dict,
-            controls_dict=controls_dict
-        )
-        
         try:
-            dzn_text, control_names = build_dzn_text(params, verdict)
+            dzn_text, control_names = build_dzn_text(self._build_params(data), verdict)
             logger.info(f"DZN content generated successfully with {len(control_names)} controls")
             return dzn_text, control_names
             
@@ -203,10 +182,30 @@ class DznController:
         """
         logger.debug("Running model compatibility validation")
 
+        verdict = validate_model_compatibility(self._build_params(data))
+        logger.info(
+            f"Model compat: PLAID={'BLOCKED' if verdict.plaid.blocked else 'OK'}, "
+            f"COMPD={'BLOCKED' if verdict.compd.blocked else 'OK'}"
+        )
+        return verdict
+    
+    def _build_params(self, data: DznFormData) -> DznBuildParams:
+        """
+        Build a DznBuildParams from validated form data.
+
+        Must only be called after validate_form_data() has passed, as it
+        assumes all fields are parseable.
+
+        Args:
+            data: Validated form data
+
+        Returns:
+            DznBuildParams ready for DZN generation or model compatibility checks
+        """
         compounds_dict, _ = parse_materials_dict(data.compounds_dict)
         controls_dict, _  = parse_materials_dict(data.controls_dict)
 
-        params = DznBuildParams(
+        return DznBuildParams(
             num_rows=data.num_rows,
             num_cols=data.num_cols,
             inner_empty_edge=data.inner_empty_edge,
@@ -222,11 +221,3 @@ class DznController:
             compounds_dict=compounds_dict,
             controls_dict=controls_dict
         )
-
-        verdict = validate_model_compatibility(params)
-        logger.info(
-            f"Model compat: PLAID={'BLOCKED' if verdict.plaid.blocked else 'OK'}, "
-            f"COMPD={'BLOCKED' if verdict.compd.blocked else 'OK'}"
-        )
-        return verdict
-    

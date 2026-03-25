@@ -93,7 +93,7 @@ class MainController:
             return (cols, rows, controls)
         except FileNotFoundError as e:
             logger.error(f"DZN file not found: {path}")
-            raise ValueError(f"DZN file not found: {e}") from e
+            raise
         except Exception as e:
             logger.error(f"Failed to parse DZN file: {e}")
             raise ValueError(f"Invalid DZN file format: {e}") from e
@@ -131,7 +131,7 @@ class MainController:
             
         except FileNotFoundError as e:
             logger.error(f"CSV file not found: {path}")
-            raise FileNotFoundError(f"Could not find CSV file: {path}") from e
+            raise
         except Exception as e:
             logger.error(f"Failed to load CSV file: {e}")
             raise ValueError(f"Invalid CSV file: {e}") from e

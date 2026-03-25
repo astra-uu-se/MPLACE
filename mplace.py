@@ -130,7 +130,8 @@ class MPlaceApplication:
         viz_view = VizView(
             parent=self.root,
             viz_controller=self.controllers['viz'],
-            csv_controller=self.controllers['csv']
+            csv_controller=self.controllers['csv'],
+            on_window_closed=lambda: self.views['main'].unlock()
         )
         
         views = {
@@ -172,35 +173,27 @@ class MPlaceApplication:
     def _open_viz_window(self) -> None:
         """Open the visualization window."""
         logger.info("Opening visualization window")
-        
-        try:
-            self.views['main'].lock()
-            state = self.state
-            
-            # Check if CSV is loaded
-            if not state.csv_file_path:
-                logger.warning("Attempted to open visualization without CSV loaded")
-                messagebox.showerror("Error", "Please load a CSV file first")
-                self.views['main'].unlock()
-                return
-            
-            # Generate figure name template
-            csv_path = Path(state.csv_file_path)
-            
-            # Add model name suffix to figure template to distinguish PLAID vs COMPD results
-            model_name = Messages.MODEL_COMPD if state.use_compd else Messages.MODEL_PLAID
-            figure_name_template = str(csv_path.parent / csv_path.stem) + '_' + model_name + '_'
-        
-            # Open visualization
-            self.views['viz'].show(
-                file_path=state.csv_file_path,
-                figure_name_template=figure_name_template,
-                rows=state.num_rows,
-                cols=state.num_cols,
-                control_names=state.control_names
-                )
-        finally:
-            self.views['main'].unlock()
+
+        state = self.state
+
+        if not state.csv_file_path:
+            logger.warning("Attempted to open visualization without CSV loaded")
+            messagebox.showerror("Error", "Please load a CSV file first")
+            return
+
+        self.views['main'].lock()
+
+        csv_path = Path(state.csv_file_path)
+        model_name = Messages.MODEL_COMPD if state.use_compd else Messages.MODEL_PLAID
+        figure_name_template = str(csv_path.parent / csv_path.stem) + '_' + model_name + '_'
+
+        self.views['viz'].show(
+            file_path=state.csv_file_path,
+            figure_name_template=figure_name_template,
+            rows=state.num_rows,
+            cols=state.num_cols,
+            control_names=state.control_names
+        )
     
     def _on_dzn_generated(self, file_path: str, rows: str, cols: str, controls: str) -> None:
         """

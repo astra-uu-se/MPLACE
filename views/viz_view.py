@@ -28,7 +28,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import pyplot
 import logging
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Callable
 
 from controllers.viz_controller import VisualizationController
 from controllers.csv_controller import CsvController
@@ -59,7 +59,8 @@ class VizView:
         self,
         parent: tk.Toplevel,
         viz_controller: VisualizationController,
-        csv_controller: CsvController
+        csv_controller: CsvController,
+        on_window_closed: Optional[Callable[[], None]] = None
     ):
         """
         Initialize visualization view.
@@ -72,6 +73,7 @@ class VizView:
         self.parent = parent
         self.viz_controller = viz_controller
         self.csv_controller = csv_controller
+        self.on_window_closed = on_window_closed
         
         # Will be set when window is created
         self.window: Optional[tk.Toplevel] = None
@@ -157,6 +159,11 @@ class VizView:
             
             self.parent.wait_window(self.window)
             
+        except FileNotFoundError as e:
+            logger.error(f"CSV file not found: {e}")
+            messagebox.showerror("File Not Found", f"The CSV file could not be found:\n\n{str(e)}")
+            self._cleanup_and_close()
+        
         except Exception as e:
             logger.error(f"Visualization error: {e}")
             messagebox.showerror("Error", f"Visualization failed:\n{str(e)}")
@@ -481,6 +488,8 @@ class VizView:
                 self.window.destroy()
                 self.window = None
                 self.parent.focus_force()
+            if self.on_window_closed:
+                self.on_window_closed()
     
     def _cleanup_canvas_widgets(self, widget: tk.Misc) -> None:
         """

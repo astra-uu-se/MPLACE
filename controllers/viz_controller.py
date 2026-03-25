@@ -143,8 +143,7 @@ class VisualizationController:
             logger.info("Visualization state prepared successfully")
             return state
         
-        except FileNotFoundError as e:
-            logger.error(f"CSV file not found: {csv_path}")
+        except (FileNotFoundError, ValueError):
             raise
         except Exception as e:
             logger.error(f"Failed to prepare visualization: {e}")
