@@ -17,7 +17,7 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.3
+# Version: 1.3.4
 # Last Revision: March 2026
 #
 
@@ -34,6 +34,7 @@ from tkinter import ttk, filedialog, messagebox
 from controllers.main_controller import MainController
 from controllers.minizinc_controller import MiniZincController
 from controllers.csv_controller import CsvController
+from core.csv_validator import CsvDiagnostics
 from models.constants import PlateDefaults, MainMenu, UI, Messages, WindowConfig, FileTypes, PathsIni, Validation
 from ui.ui_utils import path_show
 from ui.ui_validators import numeric_entry_callback
@@ -588,6 +589,18 @@ class MainView:
         """Update CSV path and enable visualize button."""
         if not path:
             raise ValueError("CSV path cannot be empty")
+        
+        # Sync UI entry values into state before loading,
+        # so the consistency check and any downstream logic see current values
+        self.controller.state.num_rows = self.num_rows.get()
+        self.controller.state.num_cols = self.num_cols.get()
+        
+        diagnostics = self.controller.load_csv_file(path)
+        # Surface any consistency warnings — non-fatal, file is already loaded
+        if diagnostics and diagnostics.has_warnings():
+            warning_text = "\n\n".join(diagnostics.warnings)
+            messagebox.showwarning("CSV Consistency Warning", warning_text)
+        
         self.controller.load_csv_file(path)
         path_show(path, self.label_csv_loaded)
         self.csv_file_path.set(path)

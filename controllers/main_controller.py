@@ -17,7 +17,7 @@
 # Orchestrates main window operations and coordinates other controllers.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.3
+# Version: 1.3.4
 # Last Revision: March 2026
 #
 
@@ -28,6 +28,7 @@ from models.application_state import ApplicationState
 from models.dto import AppConfig
 from core.dzn_parser import scan_dzn
 from core.io_utils import read_csv_file
+from core.csv_validator import check_csv_consistency, CsvDiagnostics
 from controllers.minizinc_controller import MiniZincController
 
 logger = logging.getLogger(__name__)
@@ -98,12 +99,13 @@ class MainController:
             logger.error(f"Failed to parse DZN file: {e}")
             raise ValueError(f"Invalid DZN file format: {e}") from e
     
-    def load_csv_file(self, path: str) -> None:
+    def load_csv_file(self, path: str) -> CsvDiagnostics:
         """
-        Load CSV file and update application state.
+        Load CSV file and update application state, and return consistency diagnostics.
         
-        This validates that the CSV file can be read and contains data,
-        then updates the application state.
+        The caller is responsible for surfacing any warnings in diagnostics to the user.
+        A non-empty diagnostics.warnings list does not prevent loading — the file is
+        always committed to state if it is structurally valid.
         
         Args:
             path: Path to CSV file to load
@@ -121,6 +123,16 @@ class MainController:
             if not csv_data:
                 raise ValueError("CSV file is empty")
             
+            # Run consistency check only if plate dimensions are known
+            diagnostics: Optional[CsvDiagnostics] = None
+            try:
+                expected_rows = int(self.state.num_rows)
+                expected_cols = int(self.state.num_cols)
+                if expected_rows > 0 and expected_cols > 0:
+                    diagnostics = check_csv_consistency(csv_data, expected_rows, expected_cols)
+            except ValueError:
+                pass  # dimensions not set or not yet numeric — skip check silently
+            
             # Update state
             self.state.csv_file_path = path
             
@@ -128,6 +140,8 @@ class MainController:
             self.state.add_recent_csv(path)
             
             logger.info(f"CSV loaded successfully: {len(csv_data)} rows")
+            
+            return diagnostics
             
         except FileNotFoundError as e:
             logger.error(f"CSV file not found: {path}")

@@ -19,7 +19,7 @@
 #               assert or derived constraint in the respective .mzn model.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.3
+# Version: 1.3.4
 # Last Revision: March 2026
 #
 # MAINTENANCE NOTE:

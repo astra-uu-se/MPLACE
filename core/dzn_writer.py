@@ -16,7 +16,7 @@
 # Description:  DZN text generation logic
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.3
+# Version: 1.3.4
 # Last Revision: March 2026
 #
 
