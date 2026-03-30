@@ -14,7 +14,6 @@
 #
 #
 # Description:  Validation of CSV files on loading
-# Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
 # Version: 1.3.4
