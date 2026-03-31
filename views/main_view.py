@@ -601,7 +601,6 @@ class MainView:
             warning_text = "\n\n".join(diagnostics.warnings)
             messagebox.showwarning("CSV Consistency Warning", warning_text)
         
-        self.controller.load_csv_file(path)
         path_show(path, self.label_csv_loaded)
         self.csv_file_path.set(path)
         self.button_visualize.config(state=tk.NORMAL)

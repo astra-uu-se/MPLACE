@@ -86,9 +86,9 @@ class MainController:
         """
         logger.debug(f"Parsing DZN file: {path}")
         try:
-            cols, rows, controls = scan_dzn(path)
-            self.state.num_cols = cols
+            rows, cols, controls = scan_dzn(path)
             self.state.num_rows = rows
+            self.state.num_cols = cols
             self.state.control_names = controls
             self.state.dzn_file_path = path
             return (cols, rows, controls)

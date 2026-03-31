@@ -70,7 +70,7 @@ def scan_dzn(file_path: str) -> Tuple[str, str, str]:
     if rows.isnumeric() and cols.isnumeric():
         controls = str(__parse_control_string__(ctrs))
         logger.info(f"DZN parsed: {cols}x{rows} plate, controls: {controls}")
-        return cols, rows, controls
+        return rows, cols, controls
     else:
         logger.error(f"Invalid DZN file - non-numeric dimensions: rows={rows}, cols={cols}")
         raise ValueError('Corrupt dzn file - invalid numeric values')

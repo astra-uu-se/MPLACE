@@ -176,6 +176,7 @@ def convert_to_pharmbio_format(layout_text_array: List[str]) -> List[str]:
             for i in range(rows):
                 for j in range(1,cols):
                     if drugs_matrix[i][j] != '':
+                        # VOLuL column always empty as we do not store VOLuL column in Plater format
                         plater_layout_text_array.append(''.join(['plate_1',
                                                                  ',',
                                                                  drugs_matrix[i][0] + "{:02d}".format(j),

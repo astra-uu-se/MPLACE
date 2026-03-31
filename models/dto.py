@@ -35,7 +35,7 @@ from typing import Dict, List, Any
 
 @dataclass(frozen=True)
 class AppConfig:
-    """Contains all all configuration fields (paths) the app relies on
+    """Contains all configuration fields (paths) the app relies on
     """
     minizinc_path: str
     plaid_path: str

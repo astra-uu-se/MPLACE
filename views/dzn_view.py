@@ -298,82 +298,82 @@ class DznView:
             self.flag_replicates_on_different_plates.set(False)
 
     def _on_generate(self) -> None:
-            """Handle generate button click."""
-            logger.info("Generate DZN button clicked")
+        """Handle generate button click."""
+        logger.info("Generate DZN button clicked")
+
+        # Collect form data
+        form_data = DznFormData(
+            num_rows=self.num_rows.get(),
+            num_cols=self.num_cols.get(),
+            inner_empty_edge=self.inner_empty_edge.get(),
+            size_empty_edge=self.size_empty_edge.get(),
+            size_corner_empty_wells=self.size_corner_empty_wells.get(),
+            horizontal_cell_lines=self.horizontal_cell_lines.get(),
+            vertical_cell_lines=self.vertical_cell_lines.get(),
+            flag_allow_empty_wells=self.flag_allow_empty_wells.get(),
+            flag_concentrations_on_different_rows=self.flag_concentrations_on_different_rows.get(),
+            flag_concentrations_on_different_columns=self.flag_concentrations_on_different_columns.get(),
+            flag_replicates_on_different_plates=self.flag_replicates_on_different_plates.get(),
+            flag_replicates_on_same_plate=self.flag_replicates_on_same_plate.get(),
+            compounds_dict=self.drugs.get(),
+            controls_dict=self.controls.get()
+        )
+        self.button_generate.config(state=tk.DISABLED, text='Generating...')
+        self.window.update_idletasks()
+
+        try:
+            # Step 1: UI-level validation
+            errors = self.controller.validate_form_data(form_data)
+            if errors:
+                logger.warning(f"DZN validation failed: {len(errors)} errors")
+                error_message = '\n'.join([f"{i+1}. {err}" for i, err in enumerate(errors)])
+                messagebox.showerror("Input Validation Error", error_message)
+                return
+
+            # Step 2: Model compatibility validation
+            verdict = self.controller.validate_model_compat(form_data)
+
+            if verdict.both_blocked():
+                msg = _format_verdict_message(verdict)
+                messagebox.showerror("Incompatible with All Models", msg)
+                return
+
+            if verdict.any_issues():
+                msg = _format_verdict_message(verdict)
+                proceed = messagebox.askokcancel("Model Compatibility Warnings", msg +
+                                                 "\n\nProceed with file generation?")
+                if not proceed:
+                    return
+
+            # Step 3: Generate and save
+            dzn_content, control_names = self.controller.generate_dzn_content(form_data, verdict)
+            logger.info(f"DZN content generated: {len(dzn_content)} characters")
     
-            # Collect form data
-            form_data = DznFormData(
-                num_rows=self.num_rows.get(),
-                num_cols=self.num_cols.get(),
-                inner_empty_edge=self.inner_empty_edge.get(),
-                size_empty_edge=self.size_empty_edge.get(),
-                size_corner_empty_wells=self.size_corner_empty_wells.get(),
-                horizontal_cell_lines=self.horizontal_cell_lines.get(),
-                vertical_cell_lines=self.vertical_cell_lines.get(),
-                flag_allow_empty_wells=self.flag_allow_empty_wells.get(),
-                flag_concentrations_on_different_rows=self.flag_concentrations_on_different_rows.get(),
-                flag_concentrations_on_different_columns=self.flag_concentrations_on_different_columns.get(),
-                flag_replicates_on_different_plates=self.flag_replicates_on_different_plates.get(),
-                flag_replicates_on_same_plate=self.flag_replicates_on_same_plate.get(),
-                compounds_dict=self.drugs.get(),
-                controls_dict=self.controls.get()
-            )
-            self.button_generate.config(state=tk.DISABLED, text='Generating...')
-            self.window.update_idletasks()
-
-            try:
-                # Step 1: UI-level validation
-                errors = self.controller.validate_form_data(form_data)
-                if errors:
-                    logger.warning(f"DZN validation failed: {len(errors)} errors")
-                    error_message = '\n'.join([f"{i+1}. {err}" for i, err in enumerate(errors)])
-                    messagebox.showerror("Input Validation Error", error_message)
-                    return
-
-                # Step 2: Model compatibility validation
-                verdict = self.controller.validate_model_compat(form_data)
-
-                if verdict.both_blocked():
-                    msg = _format_verdict_message(verdict)
-                    messagebox.showerror("Incompatible with All Models", msg)
-                    return
-
-                if verdict.any_issues():
-                    msg = _format_verdict_message(verdict)
-                    proceed = messagebox.askokcancel("Model Compatibility Warnings", msg +
-                                                     "\n\nProceed with file generation?")
-                    if not proceed:
-                        return
-
-                # Step 3: Generate and save
-                dzn_content, control_names = self.controller.generate_dzn_content(form_data, verdict)
-                logger.info(f"DZN content generated: {len(dzn_content)} characters")
+            # Save via controller
+            file_path = self.controller.save_dzn_file(dzn_content)
+    
+            if file_path:
+                logger.info(f"DZN saved successfully: {file_path}")
         
-                # Save via controller
-                file_path = self.controller.save_dzn_file(dzn_content)
+                # Notify callback
+                self.on_generation_complete(
+                    file_path,
+                    form_data.num_rows,
+                    form_data.num_cols,
+                    str(control_names)
+                )
         
-                if file_path:
-                    logger.info(f"DZN saved successfully: {file_path}")
-            
-                    # Notify callback
-                    self.on_generation_complete(
-                        file_path,
-                        form_data.num_rows,
-                        form_data.num_cols,
-                        str(control_names)
-                    )
-            
-                    # Hide window
-                    self.hide()
-                    self.parent.focus_force()
-                else:
-                    logger.info("DZN save cancelled by user")
-        
-            except Exception as e:
-                logger.error(f"DZN generation failed: {e}")
-                messagebox.showerror("Error", f"DZN generation failed:\n{str(e)}")
-            finally:
-                self.button_generate.config(state=tk.NORMAL, text='Generate *.dzn file')
+                # Hide window
+                self.hide()
+                self.parent.focus_force()
+            else:
+                logger.info("DZN save cancelled by user")
+    
+        except Exception as e:
+            logger.error(f"DZN generation failed: {e}")
+            messagebox.showerror("Error", f"DZN generation failed:\n{str(e)}")
+        finally:
+            self.button_generate.config(state=tk.NORMAL, text='Generate *.dzn file')
     
     def _on_close(self) -> None:
         """Handle window close button."""
