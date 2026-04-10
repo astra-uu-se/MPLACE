@@ -17,8 +17,8 @@
 # Orchestrates main window operations and coordinates other controllers.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.4
-# Last Revision: March 2026
+# Version: 1.3.5
+# Last Revision: April 2026
 #
 
 import logging
@@ -78,7 +78,7 @@ class MainController:
             path: Path to DZN file
         
         Returns:
-            Tuple of (num_cols, num_rows, control_names) as strings
+            Tuple of (num_rows, num_cols, control_names) as strings (in this specific order)
         
         Raises:
             FileNotFoundError: If DZN file doesn't exist
@@ -91,7 +91,7 @@ class MainController:
             self.state.num_cols = cols
             self.state.control_names = controls
             self.state.dzn_file_path = path
-            return (cols, rows, controls)
+            return (rows, cols, controls)
         except FileNotFoundError as e:
             logger.error(f"DZN file not found: {path}")
             raise
@@ -99,7 +99,7 @@ class MainController:
             logger.error(f"Failed to parse DZN file: {e}")
             raise ValueError(f"Invalid DZN file format: {e}") from e
     
-    def load_csv_file(self, path: str) -> CsvDiagnostics:
+    def load_csv_file(self, path: str) -> Optional[CsvDiagnostics]:
         """
         Load CSV file and update application state, and return consistency diagnostics.
         
@@ -109,6 +109,9 @@ class MainController:
         
         Args:
             path: Path to CSV file to load
+        
+        Returns:
+            CsvDiagnostics or None
             
         Raises:
             FileNotFoundError: If CSV file doesn't exist

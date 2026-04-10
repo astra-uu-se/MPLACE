@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.4
-# Last Revision: March 2026
+# Version: 1.3.5
+# Last Revision: April 2026
 #
 
 
@@ -140,7 +140,7 @@ def read_csv_file(file_path: str) -> List[str]:
         return layout_text_array
     except (ValueError) as e:
         logger.error(f"Failed to read CSV file: {file_path}, error: {e}")
-        raise e
+        raise
     except (FileNotFoundError, IOError) as e:
         logger.error(f"Failed to read CSV file: {file_path}, error: {e}")
         raise FileNotFoundError(f"Could not read CSV file: {file_path}") from e
@@ -279,7 +279,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         logger.info('Concentrations:')
         for line in concentrations_matrix:
             logger.info(line)
-        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {rows} and {len(concentrations_matrix)}')
+        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {len(rows)} and {len(concentrations_matrix)}')
     
     return rows, cols, drugs_matrix, concentrations_matrix
 
@@ -361,7 +361,7 @@ def convert_pharmbio_to_plater_plate(input_data: CSVConversionRequest) -> str:
         input_data: CSVConversionRequest() object containing all input data
         
     Returns:
-        List of CSV lines compatible with Plater R-package
+        CSV rows compatible with Plater R-package as a single string
     """
     rows = int(input_data.rows)
     cols = int(input_data.cols)
@@ -382,7 +382,7 @@ def convert_pharmbio_to_plater_plate(input_data: CSVConversionRequest) -> str:
         concentration_matrix[0][i] = str(i)
     
     for line in lines:
-        x,y = transform_coordinate(line[0])
+        x, y = transform_coordinate(line[0])
         drugs_matrix[x+1][y+1] = line[1]
         concentration_matrix[x+1][y+1] = line[2]
         

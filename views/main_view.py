@@ -17,8 +17,8 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.4
-# Last Revision: March 2026
+# Version: 1.3.5
+# Last Revision: April 2026
 #
 
 import logging
@@ -351,7 +351,7 @@ class MainView:
             try:
                 path_show(path, self.label_dzn_loaded)
                 self.dzn_file_path.set(path)
-                cols, rows, controls = self.controller.parse_dzn_file(path)
+                rows, cols, controls = self.controller.parse_dzn_file(path)
                 self.num_cols.set(cols)
                 self.num_rows.set(rows)
                 self.control_names.set(controls)
@@ -533,7 +533,7 @@ class MainView:
             self.dzn_file_path.set(path)
             path_show(path, self.label_dzn_loaded)
             try:
-                cols, rows, controls = self.controller.parse_dzn_file(path)
+                rows, cols, controls = self.controller.parse_dzn_file(path)
                 self.num_cols.set(cols)
                 self.num_rows.set(rows)
                 self.control_names.set(controls)

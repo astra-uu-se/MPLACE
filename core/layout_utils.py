@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to visualization of layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.4
-# Last Revision: March 2026
+# Version: 1.3.5
+# Last Revision: April 2026
 #
 
 import logging
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=Performance.COORDINATE_CACHE_SIZE)
-def transform_coordinate(well: str) -> List[int]:
+def transform_coordinate(well: str) -> Tuple[int, int]:
     """Transform coordinates from standard csv-file format.
     
     Args:
@@ -43,9 +43,9 @@ def transform_coordinate(well: str) -> List[int]:
         List of [row, col] coordinates (0-indexed)
         
     Example:
-        transform_coordinate('A1') returns [0, 0]
-        transform_coordinate('B3') returns [1, 2]
-        transform_coordinate('Aa14')returns [26,14]
+        transform_coordinate('A1') returns (0, 0)
+        transform_coordinate('B3') returns (1, 2)
+        transform_coordinate('Aa14')returns (26,14)
     
     Note:
         This function is cached for performance when processing repeated well coordinates.
@@ -60,7 +60,7 @@ def transform_coordinate(well: str) -> List[int]:
         else:
             col = int(well[i:]) - 1
             logger.debug(f"Coordinate transform: {well} -> [{row}, {col}]")
-            return [row, col]
+            return (row, col)
     error_msg = f'Coordinates {well} can not be transformed.'
     logger.debug(error_msg)
     raise ValueError(error_msg)

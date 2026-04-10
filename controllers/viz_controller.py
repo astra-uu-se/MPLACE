@@ -17,8 +17,8 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.4
-# Last Revision: March 2026
+# Version: 1.3.5
+# Last Revision: April 2026
 #
 
 import logging
@@ -32,7 +32,7 @@ from models.csv_data import VisualizationState
 from core.io_utils import read_csv_file
 from core.layout_utils import find_all_plates_concentrations
 from core.layout_utils import transform_concentrations_to_alphas
-from models.constants import Visualization, Performance, FigureProperties
+from models.constants import PlateDefaults, Visualization, Performance, FigureProperties
 
 logger = logging.getLogger(__name__)
 
@@ -228,9 +228,9 @@ class VisualizationController:
         
             for well in materials[material]:
                 if is_switched:
-                    [y_coord, x_coord] = transform_coordinate(well[0])
+                    y_coord, x_coord = transform_coordinate(well[0])
                 else:
-                    [x_coord, y_coord] = transform_coordinate(well[0])
+                    x_coord, y_coord = transform_coordinate(well[0])
             
                 x_coords.append(x_coord + Visualization.WELL_COORDINATE_OFFSET)
                 y_coords.append(y_coord + Visualization.WELL_COORDINATE_OFFSET)
@@ -361,10 +361,11 @@ class VisualizationController:
         """
         from core.layout_utils import to_number_if_possible
         
-        # if the plate differs from 16x24 then we need to readjust the size ranges
+        # if the plate differs from 24x16 then we need to readjust the size ranges
         # We do not increase more than 1 / 0.7 to keep the marker size reasonable
+        # NOTE: we use the reoriented grid, thus PlateDefaults.COLS and PlateDefaults.ROWS are swapped
         plate_num_rows, plate_num_cols, _ = self._resolve_orientation(plate_num_rows, plate_num_cols)
-        ratio = max(0.7, plate_num_rows / 24, plate_num_cols / 16)
+        ratio = max(0.7, plate_num_rows / int(PlateDefaults.COLS), plate_num_cols / int(PlateDefaults.ROWS))
         
         # Get size range from constants
         size_min = math.floor(Visualization.CONCENTRATION_SIZE_MIN / ratio)
@@ -451,7 +452,7 @@ class VisualizationController:
         return material_colors
     
     def _resolve_orientation(self, num_rows: int, num_cols: int) -> Tuple[int, int, bool]:
-        """Return (effective_rows, effective_cols, is_switched).
+        """Return (num_rows, num_cols, is_switched).
     
         MPLACE convention: wider dimension is always horizontal (x-axis).
         If num_cols > num_rows the axes are swapped for display.

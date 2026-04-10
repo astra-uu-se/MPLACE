@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to running MiniZinc models
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.4
-# Last Revision: March 2026
+# Version: 1.3.5
+# Last Revision: April 2026
 #
 
 
