@@ -57,16 +57,18 @@ def _build_command(minizinc_path: str, solver_config: str, model_file: str, data
         - On POSIX:   [full_command_string]
     """
     if solver_config == PathsIni.FILE_ERROR_PLACEHOLDER:
-        solver_config = ' --solver gecode'
+        if sys.platform.startswith('win'):
+            solver_config = ['--solver','gecode']
+        else:
+            solver_config = '--solver gecode'
         logger.info('Using Gecode, 1 thread')
-    else:
-        solver_config = ' --param-file-no-push ' + solver_config
-    
+    elif sys.platform.startswith('win'):
+        solver_config = [solver_config]
+        
     if sys.platform.startswith('win'):
-        cmd = [minizinc_path, solver_config, model_file, data_file]
+        cmd = [minizinc_path] + solver_config + [model_file, data_file]
     else:
-        cmd = [minizinc_path + solver_config + ' ' + model_file + ' ' + data_file]
-    
+        cmd = [minizinc_path + ' --param-file-no-push ' + solver_config + ' ' + model_file + ' ' + data_file]
     return cmd
 
 
