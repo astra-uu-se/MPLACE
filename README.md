@@ -27,16 +27,11 @@ Follow these steps in order:
 **Step 1: Install Python**
 - Windows/macOS: Download and install Python 3.13 or newer from [python.org](https://python.org) (check "Add Python to PATH" on Windows).
 
-Note: on macOS you can install the latest version (3.14.x) by using the commands in Terminal:
-```
-brew install python-tk@3.14
-brew link --overwrite python@3.14
-```
-
 **Step 2: Install Python packages**
 - Open Terminal/Command Prompt and paste:
   - Windows: `pip install numpy matplotlib`
   - macOS/Linux: `python3 -m pip install numpy matplotlib`
+- If above does not work, you can consult [python.org](https://packaging.python.org/en/latest/tutorials/installing-packages/) for detailed instructions
 
 **Step 3: Install MiniZinc**
 - Download and install MiniZinc 2.6.4+ from [minizinc.org](https://minizinc.org)
