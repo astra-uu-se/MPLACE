@@ -25,7 +25,13 @@ MPLACE is a desktop app with a graphical interface for generating and visualizin
 Follow these steps in order:
 
 **Step 1: Install Python**
-- Windows/macOS: Download and install Python 3.12 or newer from [python.org](https://python.org) (check "Add Python to PATH" on Windows).
+- Windows/macOS: Download and install Python 3.13 or newer from [python.org](https://python.org) (check "Add Python to PATH" on Windows).
+
+Note: on macOS you can install the latest version (3.14.x) by using the commands in Terminal:
+```
+brew install python-tk@3.14
+brew link --overwrite python@3.14
+```
 
 **Step 2: Install Python packages**
 - Open Terminal/Command Prompt and paste:
