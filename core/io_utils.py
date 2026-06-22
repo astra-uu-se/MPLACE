@@ -279,7 +279,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         logger.info('Concentrations:')
         for line in concentrations_matrix:
             logger.info(line)
-        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {len(rows)} and {len(concentrations_matrix)}')
+        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {rows} and {len(concentrations_matrix)}')
     
     return rows, cols, drugs_matrix, concentrations_matrix
 
