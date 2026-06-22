@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to visualization of layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.5
-# Last Revision: April 2026
+# Version: 1.3.6
+# Last Revision: June 2026
 #
 
 import logging
@@ -153,10 +153,10 @@ def find_all_plates_concentrations(text_array: List[str]) -> Tuple[Dict[str,List
         else:
             concentrations_list[array[2]] = [to_number_if_possible(array[3])]
     
-    # Sort concentrations numerically (or lexicographically for string values)
-    for material in concentrations_list:
-        concentrations_list[material].sort(
-            key=lambda x: (isinstance(x, str), x)
-        )
-    
+    # Sort materials: non-numeric keys first, then numeric keys in numeric order
+    concentrations_list = dict(
+        sorted(concentrations_list.items(),
+               key=lambda item: (not isinstance(to_number_if_possible(item[0]), str), to_number_if_possible(item[0])))
+    )
+
     return layouts_dict, concentrations_list

@@ -17,8 +17,8 @@
 # Pure view layer - handles only UI display and matplotlib visualization.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.5
-# Last Revision: April 2026
+# Version: 1.3.6
+# Last Revision: June 2026
 #
 
 import os
@@ -79,6 +79,12 @@ class VizView:
         self.window: Optional[tk.Toplevel] = None
         self.figures_to_save: List[Tuple[Figure, str]] = []
         self.material_scales: List[Figure] = []
+        
+        # Virtual scrolling state for material scales panel
+        self._scale_slots: Dict[int, Optional[dict]] = {}   # index -> {frame, canvas_ref, fig} | None
+        self._materials_list: List[str] = []                # ordered material names
+        self._scales_canvas: Optional[tk.Canvas] = None     # the tk.Canvas of the panel
+        self._scales_viz_state = None                       # viz_state reference for lazy rendering
         
         logger.info("VizView initialized")
     
@@ -263,41 +269,175 @@ class VizView:
     
     def _create_material_scales_panel(self, viz_state: VisualizationState) -> None:
         """
-        Create scrollable material concentration scales panel.
+        Create scrollable material concentration scales panel with virtual scrolling.
+        Only the materials currently visible in the viewport are rendered as matplotlib
+        figures; the rest are placeholder slots. Figures are created on scroll and
+        destroyed when they move far enough out of view.
         
         Args:
             viz_state: Visualization state with material data
         """
-        # Create frame with scrollbar
+        materials = list(viz_state.material_colors.keys())
+        self._materials_list = materials
+        self._scale_slots = {i: None for i in range(len(materials))}
+        self._scales_viz_state = viz_state
+
+        item_h = Visualization.MATERIAL_SCALE_ITEM_HEIGHT
+        total_height = len(materials) * item_h
+
+        # Outer frame
         panel = ttk.Frame(self.window, width=Visualization.MATERIAL_PANEL_WIDTH)
+
         canvas = tk.Canvas(
-            panel, 
-            width=Visualization.MATERIAL_PANEL_WIDTH, 
-            height=Visualization.MATERIAL_PANEL_HEIGHT
+            panel,
+            width=Visualization.MATERIAL_PANEL_WIDTH,
+            height=Visualization.MATERIAL_PANEL_HEIGHT,
+            scrollregion=(0, 0, Visualization.MATERIAL_PANEL_WIDTH, total_height)
         )
         canvas.pack(side="left", fill="both", expand=True)
-        
-        scrollbar = ttk.Scrollbar(panel, orient="vertical", command=canvas.yview)
+        self._scales_canvas = canvas
+
+        scrollbar = ttk.Scrollbar(panel, orient="vertical")
         scrollbar.pack(side="right", fill="y")
-        
+
+        def _on_scroll(*args):
+            canvas.yview(*args)
+            self._update_visible_scales()
+
+        scrollbar.configure(command=_on_scroll)
         canvas.configure(yscrollcommand=scrollbar.set)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        # Draw each material scale
-        for material in viz_state.material_colors:
-            self._draw_material_scale(
-                scrollable_frame,
-                material,
-                viz_state
-            )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        # Mouse wheel - Windows/macOS
+        canvas.bind("<MouseWheel>", lambda e: (
+            canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"),
+            self._update_visible_scales()
+        ))
+        # Mouse wheel - Linux
+        canvas.bind("<Button-4>", lambda e: (
+            canvas.yview_scroll(-1, "units"),
+            self._update_visible_scales()
+        ))
+        canvas.bind("<Button-5>", lambda e: (
+            canvas.yview_scroll(1, "units"),
+            self._update_visible_scales()
+        ))
+
         panel.grid(row=1, column=1, padx=UI.FRAME_PADDING, pady=UI.SMALL_PADDING)
+
+        # Initial render — populate whatever is visible at startup
+        self.window.update_idletasks()
+        self._update_visible_scales()
+
+    def _update_visible_scales(self) -> None:
+        """
+        Render matplotlib figures for slots currently in the viewport,
+        and destroy figures that have scrolled far out of view.
+        Called on every scroll event and once at panel creation.
+        """
+        canvas = self._scales_canvas
+        if canvas is None or not self._materials_list:
+            return
+
+        top_frac, bot_frac = canvas.yview()
+        item_h = Visualization.MATERIAL_SCALE_ITEM_HEIGHT
+        total_h = len(self._materials_list) * item_h
+
+        top_px = top_frac * total_h
+        bot_px = bot_frac * total_h
+
+        buf = Visualization.MATERIAL_SCALE_RENDER_BUFFER
+        first_visible = max(0, int(top_px // item_h) - buf)
+        last_visible  = min(len(self._materials_list) - 1, int(bot_px // item_h) + buf)
+
+        # Render newly visible slots
+        for i in range(first_visible, last_visible + 1):
+            if self._scale_slots[i] is None:
+                self._render_scale_slot(i)
+
+        # Destroy slots that are far off-screen
+        destroy_buffer = buf + 2
+        for i, slot in list(self._scale_slots.items()):
+            if slot is not None and (i < first_visible - destroy_buffer or i > last_visible + destroy_buffer):
+                self._destroy_scale_slot(i)
+    
+    def _render_scale_slot(self, index: int) -> None:
+        """
+        Create and embed a matplotlib figure for the material at the given slot index.
+
+        Args:
+            index: Slot index into self._materials_list
+        """
+        canvas = self._scales_canvas
+        material_name = self._materials_list[index]
+        viz_state = self._scales_viz_state
+        item_h = Visualization.MATERIAL_SCALE_ITEM_HEIGHT
+
+        fig = Figure(
+            figsize=(Visualization.SCALE_FIGURE_WIDTH, Visualization.SCALE_FIGURE_HEIGHT),
+            dpi=FigureProperties.DPI_DISPLAY
+        )
+
+        try:
+            ax = fig.add_subplot(111)
+            self.viz_controller.create_material_scale(ax, material_name, viz_state)
+
+            current_size = fig.get_size_inches()
+            fig.set_size_inches(current_size * (100 / FigureProperties.DPI))
+
+            frame = ttk.Frame(canvas)
+            mpl_canvas = FigureCanvasTkAgg(fig, master=frame)
+            mpl_canvas.draw()
+
+            widget = mpl_canvas.get_tk_widget()
+            widget.config(
+                width=Visualization.SCALE_CANVAS_WIDTH,
+                height=Visualization.SCALE_CANVAS_HEIGHT
+            )
+            widget.pack(fill='both', expand=True)
+
+            window_id = canvas.create_window(
+                0,
+                index * item_h + UI.WIDGET_SPACING_LARGE,
+                window=frame,
+                anchor="nw",
+                width=Visualization.MATERIAL_PANEL_WIDTH
+            )
+
+            self._scale_slots[index] = {
+                'frame': frame,
+                'canvas_ref': mpl_canvas,
+                'fig': fig,
+                'window_id': window_id
+            }
+            logger.debug(f"Rendered scale slot {index}: {material_name}")
+
+        except Exception as e:
+            logger.error(f"Failed to render scale slot {index} ({material_name}): {e}")
+            pyplot.close(fig)
+            raise
+    
+    def _destroy_scale_slot(self, index: int) -> None:
+        """
+        Destroy the matplotlib figure and Tk widgets for the given slot index,
+        freeing memory. The slot entry is set back to None.
+
+        Args:
+            index: Slot index into self._materials_list
+        """
+        slot = self._scale_slots.get(index)
+        if slot is None:
+            return
+
+        try:
+            self._scales_canvas.delete(slot['window_id'])
+            slot['canvas_ref'].get_tk_widget().destroy()
+            pyplot.close(slot['fig'])
+            slot['frame'].destroy()
+            logger.debug(f"Destroyed scale slot {index}")
+        except Exception as e:
+            logger.warning(f"Cleanup warning for slot {index}: {e}")
+        finally:
+            self._scale_slots[index] = None
     
     def _draw_material_scale(
         self,
@@ -306,7 +446,7 @@ class VizView:
         viz_state: VisualizationState
     ) -> None:
         """
-        Draw concentration scale for a material.
+        Draw concentration scale for a material (deprecated).
         
         Args:
             parent: Parent widget
@@ -385,7 +525,9 @@ class VizView:
             return
 
         try:
-            save_figure_to_path(figure, path, self.material_scales)
+            material_scales = self._collect_all_material_scales()
+            save_figure_to_path(figure, path, material_scales)
+            self._close_temp_export_figs()
         except (IOError, OSError):
             logger.error("Failed to write figure file")
             messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
@@ -464,7 +606,9 @@ class VizView:
             return
 
         try:
-            save_figures_to_pdf(self.figures_to_save, path, self.material_scales)
+            material_scales = self._collect_all_material_scales()
+            save_figures_to_pdf(self.figures_to_save, path, material_scales)
+            self._close_temp_export_figs()
         except (IOError, OSError):
             logger.error("Failed to write PDF file")
             messagebox.showerror(Messages.WRITE_ERROR_TITLE, Messages.WRITE_ERROR_TEXT)
@@ -473,11 +617,54 @@ class VizView:
         messagebox.showinfo("Saving Complete", f"Successfully saved layout file: {os.path.basename(path)}")
         logger.info(f"Successfully saved PDF: {path}")
     
+    def _collect_all_material_scales(self) -> List[Figure]:
+        """
+        Render all material scale figures for export (PDF/PNG).
+        Figures that are already live in _scale_slots are reused;
+        the rest are rendered temporarily and closed after saving.
+        Returns an ordered list of matplotlib Figures.
+        """
+        figures = []
+        temp_indices = []
+
+        for i, material_name in enumerate(self._materials_list):
+            slot = self._scale_slots[i]
+            if slot is not None:
+                figures.append(slot['fig'])
+            else:
+                # Render temporarily
+                fig = Figure(
+                    figsize=(Visualization.SCALE_FIGURE_WIDTH, Visualization.SCALE_FIGURE_HEIGHT),
+                    dpi=FigureProperties.DPI_DISPLAY
+                )
+                ax = fig.add_subplot(111)
+                self.viz_controller.create_material_scale(ax, material_name, self._scales_viz_state)
+                figures.append(fig)
+                temp_indices.append((i, fig))
+
+        # Store temp figs so caller can close them after saving
+        self._temp_export_figs = [fig for _, fig in temp_indices]
+        return figures
+
+    def _close_temp_export_figs(self) -> None:
+        """Close figures that were temporarily created for export."""
+        for fig in getattr(self, '_temp_export_figs', []):
+            pyplot.close(fig)
+        self._temp_export_figs = []
+    
     
     def _cleanup_and_close(self) -> None:
         """Cleanup matplotlib resources and close window."""
         try:
             self._cleanup_canvas_widgets(self.window)
+            # Destroy any live scale slots explicitly
+            for i in list(self._scale_slots.keys()):
+                self._destroy_scale_slot(i)
+            self._scale_slots = {}
+            self._materials_list = []
+            self._scales_canvas = None
+            self._scales_viz_state = None
+            self._close_temp_export_figs()
             pyplot.close('all')
             logger.debug("Matplotlib cleanup completed")
         except Exception as e:

@@ -17,8 +17,8 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.5
-# Last Revision: April 2026
+# Version: 1.3.6
+# Last Revision: June 2026
 #
 
 import logging

@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to I/O operations
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.5
-# Last Revision: April 2026
+# Version: 1.3.6
+# Last Revision: June 2026
 #
 
 
@@ -132,9 +132,6 @@ def read_csv_file(file_path: str) -> List[str]:
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             layout_text_array = file.readlines()
-
-        if not layout_text_array or all(not line.strip() for line in layout_text_array):
-            raise ValueError("CSV file is empty")
         
         layout_text_array = convert_to_pharmbio_format(layout_text_array)
         
@@ -282,7 +279,7 @@ def scan_csv_plater_matrices(layout_text_array: List[str]) -> Tuple[int, int, Li
         logger.info('Concentrations:')
         for line in concentrations_matrix:
             logger.info(line)
-        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {rows} and {len(concentrations_matrix)}')
+        raise ValueError(f'Drug and concentration layouts of Plater file have mismatched number of rows: {len(rows)} and {len(concentrations_matrix)}')
     
     return rows, cols, drugs_matrix, concentrations_matrix
 

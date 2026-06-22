@@ -16,8 +16,8 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.5
-# Last Revision: April 2026
+# Version: 1.3.6
+# Last Revision: June 2026
 
 import tkinter as tk
 from tkinter import messagebox
@@ -185,7 +185,7 @@ class MPlaceApplication:
 
         csv_path = Path(state.csv_file_path)
         model_name = Messages.MODEL_COMPD if state.use_compd else Messages.MODEL_PLAID
-        figure_name_template = str(csv_path.parent / csv_path.stem) + '_' + model_name + '_'
+        figure_name_template = str(csv_path.parent / csv_path.stem) + '_'
 
         self.views['viz'].show(
             file_path=state.csv_file_path,

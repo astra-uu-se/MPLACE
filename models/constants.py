@@ -16,8 +16,8 @@
 # Description: Constants for the MPLACE application
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.5
-# Last Revision: April 2026
+# Version: 1.3.6
+# Last Revision: June 2026
 #
 
 
@@ -104,7 +104,9 @@ class Visualization:
     
     # Add explicit canvas display sizes (in pixels)
     SCALE_CANVAS_WIDTH = 400   # Constrain scale canvas width  
-    SCALE_CANVAS_HEIGHT = 117  # Constrain scale canvas height
+    SCALE_CANVAS_HEIGHT = 110  # Constrain scale canvas height
+    MATERIAL_SCALE_ITEM_HEIGHT = 120  # SCALE_CANVAS_HEIGHT + 2 * UI.WIDGET_SPACING_LARGE
+    MATERIAL_SCALE_RENDER_BUFFER = 3  # slots to keep rendered above/below viewport
 
 
 class Performance:
