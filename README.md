@@ -25,13 +25,14 @@ MPLACE is a desktop app with a graphical interface for generating and visualizin
 Follow these steps in order:
 
 **Step 1: Install Python**
-- Windows/macOS: Download and install Python 3.13 or newer from [python.org](https://python.org) (check "Add Python to PATH" on Windows).
+- Windows/macOS: Download and install Python 3.8 or newer from [python.org](https://python.org) (check "Add Python to PATH" on Windows)
+  - On macOS it is recommended to install Python 3.13 or newer due to compatibility issues
 
 **Step 2: Install Python packages**
 - Open Terminal/Command Prompt and paste:
   - Windows: `pip install numpy matplotlib`
   - macOS/Linux: `python3 -m pip install numpy matplotlib`
-- If above does not work, you can consult [python.org](https://packaging.python.org/en/latest/tutorials/installing-packages/) for detailed instructions
+- If the above does not work, you can consult [python.org](https://packaging.python.org/en/latest/tutorials/installing-packages/) for detailed instructions
 
 **Step 3: Install MiniZinc**
 - Download and install MiniZinc 2.6.4+ from [minizinc.org](https://minizinc.org)
@@ -60,9 +61,9 @@ If the window opens, you're ready to go.
 ## Installation (details)
 
 **Requirements**
-- Python 3.12+ (3.13 also tested; 3.11 on macOS may have issues)
-- NumPy 2.1+ and Matplotlib 3.10+
-- MiniZinc 2.6.4+ (GeCode solver required for PLAID)
+- Python 3.8+ (3.13 also tested; 3.11 on macOS may have issues)
+- NumPy 1.2+ and Matplotlib 3.5+
+- MiniZinc 2.6.4+ (GeCode solver is required for PLAID)
 
 **Install commands**
 - Windows:
