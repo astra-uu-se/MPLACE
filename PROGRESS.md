@@ -26,7 +26,7 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Improve Error Diagnostics        | Done           | MiniZinc failures provide more specific diagnostic information which is now shown to the user; enhanced subprocess error handling with context-specific guidance. |
 | Low      | Add Bounds Checking              | Done           | Plate dimensions and layout parameters are validated against reasonable limits which are introduced in COMPD, and PLAID; add input validation with helpful error messages. |
 | Low      | Enhance Documentation            | Done           | Complex algorithms like __parse_control_string__ have more detailed inline comments; added concrete usage examples in docstrings when necessary. |
-| Low      | Add Unit Test Coverage           | Not done       | No apparent test coverage for utility functions and data processing; create a test suite for core functionality. |
+| Low      | Add Unit Test Coverage           | Done           | Unit tests for the plater conversion functions were added (as it seems to be potentially fragile). I decided to omit unit testing for other parts of the code, as for the scope of this project, this seems like a disproportionate amount of work |
 | Low      | Add Integration Tests            | Not done       | No end-to-end testing of DZN → MiniZinc → CSV → Visualization workflow; add comprehensive integration test suite. |
 | Low      | Add Keyboard Shortcuts           | Done       | Added keyboard shortcuts for common operations, together with additional main menu items |
 | Low      | Create Recent Files Menu         | Done           | No quick access to recently used DZN/CSV files; add recent files functionality for better workflow efficiency. |
@@ -34,7 +34,7 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Expand Export Format Options     | Done           | Export support for PNG and PDF formats for publication-quality figures. |
 | Low      | Add Data Consistency Validation  | Done            | Basic validation of the loaded CSV file is performed: if the CSV file wells exceed set plate dimensions, a warning is shown to the user|
 | Low      | Create Data Transfer Objects     | Done           | Complex parameter passing could use structured objects instead of individual parameters for better maintainability. |
-| Low      | Add Plater CSV Export Support    | Done.          | Add export of layouts to plater's plate-shaped CSV format for R ecosystem integration. Create plate-grid pivot by mapping well coordinates (A01 → row A, col 1) and writing plate-shaped layers (Treatment, Concentration). Implement conversion utilities in core/io_utils.py and expose via UI export options. Easy conversion from current MPLACE CSV format. |
+| Low      | Add Plater CSV Export Support    | Done.          | Add export of layouts to Plater's plate-shaped CSV format for R ecosystem integration. Create plate-grid pivot by mapping well coordinates (A01 to row A, col 1) and writing plate-shaped layers (Treatment, Concentration). Implement conversion utilities in core/io_utils.py and expose via UI export options. Easy conversion from current MPLACE CSV format. |
 | Low      | Add Wellmap TOML Export Support  | Not done       | Add export of layouts to Wellmap TOML format for microplate metadata exchange. Group wells by compound/concentration patterns to generate [row], [col], and [block] sections with experimental metadata. Implement in core/io_utils.py and expose via UI export options. More complex than Plater format but enables richer experimental design workflows. |
 
 ---
@@ -53,4 +53,4 @@ This progress tracking file should be updated after each significant change or b
 
 ---
 
-*Last updated: March 24, 2026 ("Add Bounds Checking" task is done)*
+*Last updated: June 22, 2026 ("AAdd Unit Test Coverage" task is done)*
