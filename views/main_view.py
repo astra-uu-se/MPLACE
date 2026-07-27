@@ -17,8 +17,8 @@
 # Pure view layer - handles only UI display and user input.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.6
-# Last Revision: June 2026
+# Version: 1.3.7
+# Last Revision: August 2026
 #
 
 import logging
@@ -373,11 +373,11 @@ class MainView:
         logger.info(f"Running {model_name} model...")
 
         self.lock()
+        self._mzn_queue = queue.Queue()
         self._mzn_start = time.monotonic()
         self._mzn_timer_active = True
         self._tick_timer(timeout)
-        self._mzn_queue = queue.Queue()
-
+        
         def worker():
             try:
                 # Run model through MiniZincController
@@ -442,7 +442,7 @@ class MainView:
             if not chosen_format:
                 self.label_csv_loaded.config(text=original_text)
                 messagebox.showwarning("Warning", "Model ran successfully, the user cancelled CSV save")
-                logger.info("User cancelled format selection")
+                logger.info("User cancelled format selection after successful MiniZinc run")
                 self.unlock()
                 self.root.focus_force()
                 return
@@ -472,7 +472,7 @@ class MainView:
             else:
                 self.label_csv_loaded.config(text=original_text)
                 messagebox.showwarning("Warning", "Model ran successfully, the user cancelled CSV save")
-                logger.info("User cancelled CSV save")
+                logger.info("User cancelled CSV save after successful MiniZinc run")
             
         except Exception as e:
             self.label_csv_loaded.config(text="Export failed after successful model run")

@@ -19,8 +19,8 @@
 #               assert or derived constraint in the respective .mzn model.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.6
-# Last Revision: June 2026
+# Version: 1.3.7
+# Last Revision: August 2026
 #
 # MAINTENANCE NOTE:
 #   Quantity computations in _plaid_quantities() and _compd_quantities() must

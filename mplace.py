@@ -16,8 +16,8 @@
 # Main application entry point with MVC architecture.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.6
-# Last Revision: June 2026
+# Version: 1.3.7
+# Last Revision: August 2026
 
 import tkinter as tk
 from tkinter import messagebox

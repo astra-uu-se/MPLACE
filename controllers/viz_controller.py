@@ -17,8 +17,8 @@
 # Orchestrates data preparation and figure generation for plate layouts.
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.6
-# Last Revision: June 2026
+# Version: 1.3.7
+# Last Revision: August 2026
 #
 
 import logging
@@ -361,9 +361,10 @@ class VisualizationController:
         """
         from core.layout_utils import to_number_if_possible
         
-        # if the plate differs from 24x16 then we need to readjust the size ranges
-        # We do not increase more than 1 / 0.7 to keep the marker size reasonable
-        # NOTE: we use the reoriented grid, thus PlateDefaults.COLS and PlateDefaults.ROWS are swapped
+        # Sizes are scaled against the display-oriented plate dimensions.
+        # After _resolve_orientation(), the horizontal axis is compared to the
+        # default column count and the vertical axis to the default row count.
+        # We cap enlargement by using a minimum ratio of 0.7.
         plate_num_rows, plate_num_cols, _ = self._resolve_orientation(plate_num_rows, plate_num_cols)
         ratio = max(0.7, plate_num_rows / int(PlateDefaults.COLS), plate_num_cols / int(PlateDefaults.ROWS))
         

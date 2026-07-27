@@ -16,8 +16,8 @@
 # Description:  Various supplementary utilities related to visualization of layouts
 #
 # Authors: Ramiz GINDULLIN (ramiz.gindullin@it.uu.se)
-# Version: 1.3.6
-# Last Revision: June 2026
+# Version: 1.3.7
+# Last Revision: August 2026
 #
 
 import logging
@@ -76,7 +76,7 @@ def transform_index(index: int) -> str:
     """
     if index < len(Alphabet.LETTERS_CAPITAL):
         return Alphabet.LETTERS_CAPITAL[index]
-    return Alphabet.LETTERS_CAPITAL[index//len(Alphabet.LETTERS_CAPITAL)-1] + Alphabet.LETTERS_LOWERCASE[index%len(Alphabet.LETTERS_CAPITAL)]
+    return Alphabet.LETTERS_CAPITAL[index//len(Alphabet.LETTERS_LOWERCASE)-1] + Alphabet.LETTERS_LOWERCASE[index%len(Alphabet.LETTERS_LOWERCASE)]
 
 
 def transform_concentrations_to_alphas(concentration_list: Sequence[Union[str, float, int]]) -> Dict[Union[str, float, int], float]:
