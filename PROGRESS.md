@@ -27,7 +27,7 @@ This document tracks the progress of key tasks in the MPLACE project.
 | Low      | Add Bounds Checking              | Done           | Plate dimensions and layout parameters are validated against reasonable limits which are introduced in COMPD, and PLAID; add input validation with helpful error messages. |
 | Low      | Enhance Documentation            | Done           | Complex algorithms like __parse_control_string__ have more detailed inline comments; added concrete usage examples in docstrings when necessary. |
 | Low      | Add Unit Test Coverage           | Done           | Unit tests for the plater conversion functions were added (as it seems to be potentially fragile). I decided to omit unit testing for other parts of the code, as for the scope of this project, this seems like a disproportionate amount of work |
-| Low      | Add Integration Tests            | Not done       | No end-to-end testing of DZN → MiniZinc → CSV → Visualization workflow; add comprehensive integration test suite. |
+| Low      | Add Integration Tests            | Done       | Two integration tests implemented: MiniZinc text extraction pipeline, and PharmBio/Plater format conversion |
 | Low      | Add Keyboard Shortcuts           | Done       | Added keyboard shortcuts for common operations, together with additional main menu items |
 | Low      | Create Recent Files Menu         | Done           | No quick access to recently used DZN/CSV files; add recent files functionality for better workflow efficiency. |
 | Low      | Add Batch Processing Support     | Not done       | No support for processing multiple files in sequence; add batch processing capabilities for research workflows. |
@@ -53,4 +53,4 @@ This progress tracking file should be updated after each significant change or b
 
 ---
 
-*Last updated: June 22, 2026 ("AAdd Unit Test Coverage" task is done)*
+*Last updated: July 27, 2026 ("Add Integration Test Coverage" task is done)*
