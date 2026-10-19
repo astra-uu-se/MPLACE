@@ -1,6 +1,4 @@
 # MPLACE
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-
 **MicroPlate Layout Arrangement with Constraint Engines**
 
 MPLACE is a desktop app with a graphical interface for generating and visualizing microplate layouts. It runs MiniZinc models (e.g., [PLAID](https://github.com/pharmbio/plaid) and [COMPD](https://github.com/astra-uu-se/COMPD)) behind the scenes, so you don't need to write code. Typical use: define compounds/controls, produce plate layouts, and save figures for reports.
@@ -293,7 +291,7 @@ Gindullin, R., & Francisco Rodríguez, M. A. (2026). MPLACE: MicroPlate layout a
 }
 ```
 
-**Note:** The paper describes version 1.2.3. The latest version (1.2.5+) includes additional bug fixes and UX improvements — see the repository for updates.
+**Note:** The paper describes version 1.2.3. Later versions (1.2.4+) include additional bug fixes and UX improvements - see the repository for updates.
 
 ## Credits
 
@@ -303,4 +301,4 @@ MPLACE is developed by [Ramiz Gindullin](https://orcid.org/0000-0003-4947-9641) 
 
 ## License
 
-MPLACE is under Apache 2.0 LICENSE. The author accepts no responsibility or liability for the use of the project or any direct or indirect damages arising out of its use.
+MPLACE is under CC0 1.0 The author accepts no responsibility or liability for the use of the project or any direct or indirect damages arising out of its use.
