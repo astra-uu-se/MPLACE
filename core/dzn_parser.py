@@ -1,16 +1,6 @@
 # Copyright 2026 Ramiz Gindullin.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Licensed under the CC0 license.
 #
 #
 # Description:  Various supplementary utilities related to DZN parsing
@@ -60,15 +50,15 @@ def scan_dzn(file_path: str) -> Tuple[str, str, str]:
     # Remove spaces, tabs and newlines to ensure a more robust scan
     dzn_text = re.sub(r"[\n\t\s]*", "", dzn_text)
 
-    rows = __retrieve_dzn_param__(dzn_text, rows_str)
-    cols = __retrieve_dzn_param__(dzn_text, cols_str)
-    ctrs = __retrieve_dzn_param__(dzn_text, ctrs_str)
-    nb_ctrs = __retrieve_dzn_param__(dzn_text, nb_ctrs_str)
+    rows = _retrieve_dzn_param(dzn_text, rows_str)
+    cols = _retrieve_dzn_param(dzn_text, cols_str)
+    ctrs = _retrieve_dzn_param(dzn_text, ctrs_str)
+    nb_ctrs = _retrieve_dzn_param(dzn_text, nb_ctrs_str)
 
     ctrs = ctrs.replace(nb_ctrs_str, nb_ctrs)
 
     if rows.isnumeric() and cols.isnumeric():
-        controls = str(__parse_control_string__(ctrs))
+        controls = str(_parse_control_string(ctrs))
         logger.info(f"DZN parsed: {cols}x{rows} plate, controls: {controls}")
         return rows, cols, controls
     else:
@@ -76,7 +66,7 @@ def scan_dzn(file_path: str) -> Tuple[str, str, str]:
         raise ValueError('Corrupt dzn file - invalid numeric values')
 
 
-def __retrieve_dzn_param__(text: str, param_string: str) -> str:
+def _retrieve_dzn_param(text: str, param_string: str) -> str:
     """Extract parameter value from DZN text.
     
     Args:
@@ -103,7 +93,7 @@ def __retrieve_dzn_param__(text: str, param_string: str) -> str:
     return param_res
 
 
-def __parse_control_string__(control_string: str) -> str:
+def _parse_control_string(control_string: str) -> str:
     """Parse the control_names expression from a DZN file into a flat list of names.
 
     The DZN control_names field can take two forms that this function handles:
